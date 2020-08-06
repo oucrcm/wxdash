@@ -12,11 +12,11 @@ This README provides a short overview of each step in the project. As the steps 
 
 Data files:
 
-- [Storm event data files (20); StormEvents_details*.csv](https://www1.ncdc.noaa.gov/pub/data/swdi/stormevents/csvfiles/)
-- [USDM data files (20); dm_export*.csv](https://droughtmonitor.unl.edu/Data/DataDownload/ComprehensiveStatistics.aspx)
-- [CDC SVI data file (1); SVI2018_US_COUNTY.csv](https://svi.cdc.gov/data-and-tools-download.html)
-- [Wx Survey data files (4); WX*.csv](https://dataverse.harvard.edu/dataverse/wxsurvey)
-- [USPS ZIP Code data file (1), ZIP_COUNTY_032020.xlsx](https://www.huduser.gov/portal/datasets/usps_crosswalk.html)
+- [Storm event data files (20 files); StormEvents_details*.csv](https://www1.ncdc.noaa.gov/pub/data/swdi/stormevents/csvfiles/)
+- [USDM data files (20 files); dm_export*.csv](https://droughtmonitor.unl.edu/Data/DataDownload/ComprehensiveStatistics.aspx)
+- [CDC SVI data file (1 file); SVI2018_US_COUNTY.csv](https://svi.cdc.gov/data-and-tools-download.html)
+- [Wx Survey data files (4 files); WX*.csv](https://dataverse.harvard.edu/dataverse/wxsurvey)
+- [USPS ZIP Code data file (1 file); ZIP_COUNTY_032020.xlsx](https://www.huduser.gov/portal/datasets/usps_crosswalk.html)
 
 GIS files:
 

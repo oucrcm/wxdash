@@ -75,4 +75,4 @@ Steps to produce estimates:
     - Output:
         - https://crcm.shinyapps.io/WxDash/
                 
-While this repository does not include all of the `Output` files from the steps above, it does include the files necessary to accomplish Step 8, **Create WxDash*** without executing Step 1-7. Those files are: `cwa_estimates` (a CWA shapefile with estimates), `county_estimates` (a CWA shapefile with estimates), and `base_survey_date.csv` (the Wx Survey data).
+While this repository does not include all of the `Output` files from the steps above, it does include the files necessary to accomplish Step 8, **Create WxDash** without executing Step 1-7. Those files are: `cwa_estimates` (a CWA shapefile with estimates), `county_estimates` (a CWA shapefile with estimates), and `base_survey_date.csv` (the Wx Survey data).

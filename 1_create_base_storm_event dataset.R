@@ -2,8 +2,8 @@ library(data.table)
 library(tidyverse)
 library(sf)
 
-downloads <- "/Users/josephripberger/Dropbox/Severe Weather and Society Dashboard/Live/downloads/" # define locally!!!
-outputs <- "/Users/josephripberger/Dropbox/Severe Weather and Society Dashboard/Live/outputs/" # define locally!!!
+downloads <- "/Users/josephripberger/Dropbox/Severe Weather and Society Dashboard/local files/downloads/" # define locally!!!
+outputs <- "/Users/josephripberger/Dropbox/Severe Weather and Society Dashboard/local files/outputs/" # define locally!!!
 
 storm_data <- list.files(downloads, pattern = "StormEvents_details", full.names = TRUE) # https://www1.ncdc.noaa.gov/pub/data/swdi/stormevents/csvfiles/
 storm_data <- lapply(storm_data, fread, sep = ",")

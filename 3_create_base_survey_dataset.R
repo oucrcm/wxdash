@@ -4,8 +4,8 @@ library(sf)
 library(tidyverse)
 options(scipen = 9999)
 
-downloads <- "/Users/josephripberger/Dropbox/Severe Weather and Society Dashboard/Live/downloads/" # define locally!!!
-outputs <- "/Users/josephripberger/Dropbox/Severe Weather and Society Dashboard/Live/outputs/" # define locally!!!
+downloads <- "/Users/josephripberger/Dropbox/Severe Weather and Society Dashboard/local files/downloads/" # define locally!!!
+outputs <- "/Users/josephripberger/Dropbox/Severe Weather and Society Dashboard/local files/outputs/" # define locally!!!
 
 # Import Survey Data -----------------------------
 WX17 <- read_csv(paste0(downloads, "WX17_data_wtd.csv")) # Survey Data

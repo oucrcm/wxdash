@@ -6,8 +6,8 @@ options(max.print = 99999)
 options(mc.cores = parallel::detectCores())
 rstan_options(auto_write = TRUE)
 
-downloads <- "/Users/josephripberger/Dropbox/Severe Weather and Society Dashboard/Live/downloads/" # define locally!!!
-outputs <- "/Users/josephripberger/Dropbox/Severe Weather and Society Dashboard/Live/outputs/" # define locally!!!
+downloads <- "/Users/josephripberger/Dropbox/Severe Weather and Society Dashboard/local files/downloads/" # define locally!!!
+outputs <- "/Users/josephripberger/Dropbox/Severe Weather and Society Dashboard/local files/outputs/" # define locally!!!
 
 # Survey Data -------------------------
 survey_data <- read.csv(paste0(outputs, "base_survey_data.csv")) %>% tibble() # use read.csv because of a parsing issue

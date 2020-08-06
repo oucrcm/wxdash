@@ -3,7 +3,7 @@
 This repository archives and documents the data and `R code` necessary to produce the [Severe Weather and Society Dashboard (WxDash)](https://crcm.shinyapps.io/WxDash/). 
 
 <a href = "https://crcm.shinyapps.io/WxDash/">
- <img src="/Users/josephripberger/Dropbox/Severe Weather and Society Dashboard/Live/example_dash.png" width="500" alt="chart">
+ <img src="https://github.com/oucrcm/wxdash/blob/master/example_dash.png" width="500" alt="chart">
 </a>
 
 WxDash is currenrly maintained by researchers at the University of Oklahoma's [National Institute for Risk and Resilience](risk.ou.edu). WxDash uses data from a yearly survey of US adults to systematically measure, map, and track forecast and warning reception, comprehension, and response in counties and County Warning Areas across the country. Survey data are available in the [Severe Weather and Society Survey Dataverse](https://dataverse.harvard.edu/dataverse/wxsurvey).

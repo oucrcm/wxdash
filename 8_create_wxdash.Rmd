@@ -68,7 +68,6 @@ groups <- c("All" = "All",
             "Survey Year" = "Year")
 
 variable_data <- read_csv("variable_data_live.csv")
-variable_data <- variable_data %>% drop_na() %>% select(-c(WX17, WX18, WX19))
 ```
 
 Composite Scales
@@ -984,10 +983,6 @@ Sidebar {.sidebar data-width=300}
 <br/>
 
 ```{r}
-variable_data <- variable_data %>%
-  filter(!id %in% c("age", "edu", "gend", "hisp", "race", "state", "long_years", "long_months", "zip",
-                    "last_state", "now", "rural", "home", "rent", "adults", "children"))
-
 num <- survey_data %>%
   summarise_all(n_distinct) %>%
   select_if(any_vars((.) > 11))

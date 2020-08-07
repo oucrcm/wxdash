@@ -1,4 +1,4 @@
-id,question,response_options
+ï»¿id,question,response_options
 follow,I follow the weather very closely.,1 = Strongly disagree; 2 = Disagree; 3 = Neither disagree nor agree; 4 = Agree; 5 = Strongly agree
 plan_around,I plan my daily routine around the weather.,1 = Strongly disagree; 2 = Disagree; 3 = Neither disagree nor agree; 4 = Agree; 5 = Strongly agree
 und_weather,"I don't understand what causes extreme weather events like thunderstorms, tornadoes, and hurricanes.",1 = Strongly disagree; 2 = Disagree; 3 = Neither disagree nor agree; 4 = Agree; 5 = Strongly agree
@@ -173,10 +173,10 @@ rq_7,"In the last year, have you established a specific meeting place to reunite
 rq_8,"In the last year, have you practiced or drilled on what to do in an emergency at home?",0 = No; 1 = Yes; 2 = Not sure
 rq_9,"In the last year, have you volunteered to help prepare for or respond to a major emergency?",0 = No; 1 = Yes; 2 = Not sure
 rq_10,Have you taken first aid training such as CPR in the past five years?,0 = No; 1 = Yes; 2 = Not sure
-long_forcast,"If you were toÊguess, about how far in advance can meteorologistsÊaccuratelyÊforecast dailyÊtemperatures and rain?",1 =Ê5 days or less;Ê2 =Ê7 days;Ê3 =Ê10 days;Ê4 =Ê2 weeks;Ê5 =Ê4 weeks;Ê6 =Ê8 weeks;Ê7 =Ê2 months or more
-covid_risk,How do you rate the risk of COVID-19 in relation to extreme weather risks to you and the people in your area?,1 = The risk of COVID-19 isÊsignificantlyÊlowerÊthan the risk ofÊextremeÊweather;Ê2 = The risk of COVID-19 isÊlowerÊthan the risk ofÊextreme weather;Ê3 = The risk are about the same;Ê4 = The risk of COVID-19 isÊhigherÊthan the risk ofÊextreme weather;Ê5 = The risk of COVID-19 isÊsignificantlyÊhigherÊthan the risk ofÊextremeÊweather
-covid_attention,Do you pay less attention to extreme weather risks than you have in the past?,1 = Definitely no;Ê2 = Probably no;Ê3 = Not sure;Ê4 = Probably yes;Ê5 = Definitely yes
-covid_respond,Do you think COVID-19 will make it more difficult for you and other people in your area to take protective action in response to future extreme weather events?,1 = Definitely no;Ê2 = Probably no;Ê3 = Not sure;Ê4 = Probably yes;Ê5 = Definitely yes
-your_ability,How would you rate your ability to calculate and interpret probabilities when making decisions?,1 = Poor;Ê2 = Fair;Ê3 = Good;Ê4 = Very good;Ê5 = Excellent
-public_ability,How would you rate the ability of most people you know to calculate and interpret probabilities when making decisions?,1 = Poor;Ê2 = Fair;Ê3 = Good;Ê4 = Very good;Ê5 = Excellent
-inc_next,Do you expect your estimated annual income for your household in 2020 to beÉ,1 = Less than it was in 2019; 2 = About the same as it was in 2019; 3 = More than it was in 2019
+long_forcast,"If you were toÂ guess, about how far in advance can meteorologistsÂ accuratelyÂ forecast dailyÂ temperatures and rain?",1 =Â 5 days or less;Â 2 =Â 7 days;Â 3 =Â 10 days;Â 4 =Â 2 weeks;Â 5 =Â 4 weeks;Â 6 =Â 8 weeks;Â 7 =Â 2 months or more
+covid_risk,How do you rate the risk of COVID-19 in relation to extreme weather risks to you and the people in your area?,1 = The risk of COVID-19 isÂ significantlyÂ lowerÂ than the risk ofÂ extremeÂ weather;Â 2 = The risk of COVID-19 isÂ lowerÂ than the risk ofÂ extreme weather;Â 3 = The risk are about the same;Â 4 = The risk of COVID-19 isÂ higherÂ than the risk ofÂ extreme weather;Â 5 = The risk of COVID-19 isÂ significantlyÂ higherÂ than the risk ofÂ extremeÂ weather
+covid_attention,Do you pay less attention to extreme weather risks than you have in the past?,1 = Definitely no;Â 2 = Probably no;Â 3 = Not sure;Â 4 = Probably yes;Â 5 = Definitely yes
+covid_respond,Do you think COVID-19 will make it more difficult for you and other people in your area to take protective action in response to future extreme weather events?,1 = Definitely no;Â 2 = Probably no;Â 3 = Not sure;Â 4 = Probably yes;Â 5 = Definitely yes
+your_ability,How would you rate your ability to calculate and interpret probabilities when making decisions?,1 = Poor;Â 2 = Fair;Â 3 = Good;Â 4 = Very good;Â 5 = Excellent
+public_ability,How would you rate the ability of most people you know to calculate and interpret probabilities when making decisions?,1 = Poor;Â 2 = Fair;Â 3 = Good;Â 4 = Very good;Â 5 = Excellent
+inc_next,Do you expect your estimated annual income for your household in 2020 to beâ€¦,1 = Less than it was in 2019; 2 = About the same as it was in 2019; 3 = More than it was in 2019

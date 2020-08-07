@@ -659,59 +659,56 @@ renderPlot({
     }, height = 720)
 ```
 
-<!-- ### Probability vs. Impact -->
-<!-- This experiment examines the relative influence of forecast storm intensity (impact) vs. probability on public judgement of tornado risk. The data come from WX17. Review the [reference report](http://risk.ou.edu/downloads/news/WX17-Reference-Report.pdf) for more information and complete question wording. Some key findings from this experiment include: -->
+### Probability vs. Impact
+This experiment examines the relative influence of forecast storm intensity (impact) vs. probability on public judgement of tornado risk. The data come from WX17. Review the [reference report](http://risk.ou.edu/downloads/news/WX17-Reference-Report.pdf) for more information and complete question wording. Some key findings from this experiment include:
 
-<!--   - Both forecast intensity and probability information affect public risk assessments. -->
-<!--   - On average, people are slightly more sensitive to probability information than intensity information. -->
-<!--   - Different groups of people use this information in different ways. For example, groups with high numeracy (risk literacy) are more likely to rely on information about intensity and probability when assessing risk than groups with low numeracy. -->
+  - Both forecast intensity and probability information affect public risk assessments.
+  - On average, people are slightly more sensitive to probability information than intensity information.
+  - Different groups of people use this information in different ways. For example, groups with high numeracy (risk literacy) are more likely to rely on information about intensity and probability when assessing risk than groups with low numeracy.
 
-<!-- ```{r} -->
-<!-- selectInput(inputId = 'neg_group', label = 'Select a grouping', choices = groups) -->
-<!-- ``` -->
+```{r}
+selectInput(inputId = 'neg_group', label = 'Select a grouping', choices = groups)
+```
 
-<!-- We would like to know how YOU weigh the probability and intensity of extreme weather events. Please rate the risk of the following tornado scenarios: A [5:100]% chance of a [Light (EF-0)|Moderate (EF-1)|Significant (EF-2)|Severe (EF-3)|Devastating (EF-4)|Incredible (EF-5)] tornado. -->
+We would like to know how YOU weigh the probability and intensity of extreme weather events. Please rate the risk of the following tornado scenarios: A [5:100]% chance of a [Light (EF-0)|Moderate (EF-1)|Significant (EF-2)|Severe (EF-3)|Devastating (EF-4)|Incredible (EF-5)] tornado.
 
-<!-- ```{r} -->
-<!-- long_data <- bind_cols( -->
-<!--   select(survey_data, p_id, extprob_a_prob, extprob_b_prob, extprob_c_prob) %>% gather(variable, prob, -p_id), -->
-<!--   select(survey_data, extprob_a_int, extprob_b_int, extprob_c_int) %>% gather(variable, ef), -->
-<!--   select(survey_data, extprob_a, extprob_b, extprob_c) %>% gather(variable, risk)) %>% -->
-<!--   mutate(time = recode(variable, extprob_a_prob = 1, extprob_b_prob = 2, extprob_c_prob = 3)) -->
+```{r}
+prop_data_long <- select(survey_data, p_id, extprob_a_prob, extprob_b_prob, extprob_c_prob) %>% pivot_longer(extprob_a_prob:extprob_c_prob, names_to = "Prob_Time", values_to = "Prob")
+int_data_long <- select(survey_data, p_id, extprob_a_int, extprob_b_int, extprob_c_int) %>% pivot_longer(extprob_a_int:extprob_c_int, names_to = "Int_Time", values_to = "Int")
+perc_data_long <- select(survey_data, p_id, extprob_a, extprob_b, extprob_c) %>% pivot_longer(extprob_a:extprob_c, names_to = "Perc_Time", values_to = "Perc")
+long_data <- left_join(prop_data_long, int_data_long, by = "p_id")
+long_data <- left_join(long_data, perc_data_long, by = "p_id")
+long_data <- left_join(long_data, survey_data %>% select(p_id, tibble(groups)$groups), by = "p_id")
 
-<!-- long_data <- left_join(long_data, survey_data %>% select(p_id, tibble(groups)$groups), by = "p_id") -->
+long_data$Int <- factor(long_data$Int, levels = c("a Light (EF-0)",
+                                                "a Moderate (EF-1)",
+                                                "a Significant (EF-2)",
+                                                "a Severe (EF-3)",
+                                                "a Devastating (EF-4)",
+                                                "an Incredible (EF-5)"),
+                        labels = 0:5)
 
+long_data$Int <- as.numeric(as.character(long_data$Int))
 
-
-<!-- long_data$ef <- factor(long_data$ef, levels = c("a Light (EF-0)", -->
-<!--                                                 "a Moderate (EF-1)", -->
-<!--                                                 "a Significant (EF-2)", -->
-<!--                                                 "a Severe (EF-3)", -->
-<!--                                                 "a Devastating (EF-4)", -->
-<!--                                                 "an Incredible (EF-5)"), -->
-<!--                        labels = 0:5) -->
-
-<!-- long_data$ef_num <- as.numeric(as.character(long_data$ef)) -->
-
-<!-- renderPlot({ -->
-<!--   p1 <- ggplot(long_data %>% drop_na(input$neg_group), aes_string(y = "risk", x = "ef_num", color = input$neg_group)) + -->
-<!--     geom_smooth(method = "lm") + -->
-<!--     labs(x = "Forecast Intensity (EF-Scale)", y = "Mean Response (Risk Rating)") + -->
-<!--     theme_minimal() + -->
-<!--     theme(text = element_text(size = 18)) + -->
-<!--     coord_cartesian(ylim = c(2.25, 4)) + -->
-<!--     scale_color_viridis(discrete = TRUE) -->
-<!--   p2 <- ggplot(long_data %>% drop_na(input$neg_group), aes_string(y = "risk", x = "prob", color = input$neg_group)) + -->
-<!--     geom_smooth(method = "lm") + -->
-<!--     labs(x = "Forecast Probability (Percent Chance)", y = "Mean Response (Risk Rating)") + -->
-<!--     theme_minimal() + -->
-<!--     theme(text = element_text(size = 18)) + -->
-<!--     coord_cartesian(ylim = c(2.25, 4)) + -->
-<!--     scale_color_viridis(discrete = TRUE) -->
-<!--   p <- cowplot::plot_grid(p1, p2, align = "v", nrow = 1) -->
-<!--   print(p) -->
-<!--   }, height=700) -->
-<!-- ``` -->
+renderPlot({
+  p1 <- ggplot(long_data %>% drop_na(input$neg_group), aes_string(y = "Perc", x = "Int", color = input$neg_group)) +
+    geom_smooth(method = "lm") +
+    labs(x = "Forecast Intensity (EF-Scale)", y = "Mean Response (Risk Rating)") +
+    theme_minimal() +
+    theme(text = element_text(size = 18)) +
+    coord_cartesian(ylim = c(2.25, 4)) +
+    scale_color_viridis(discrete = TRUE)
+  p2 <- ggplot(long_data %>% drop_na(input$neg_group), aes_string(y = "Perc", x = "Prob", color = input$neg_group)) +
+    geom_smooth(method = "lm") +
+    labs(x = "Forecast Probability (Percent Chance)", y = "Mean Response (Risk Rating)") +
+    theme_minimal() +
+    theme(text = element_text(size = 18)) +
+    coord_cartesian(ylim = c(2.25, 4)) +
+    scale_color_viridis(discrete = TRUE)
+  p <- cowplot::plot_grid(p1, p2, align = "v", nrow = 1)
+  print(p)
+  }, height=700)
+```
 
 ### Risk Categories
 This experiment examines public perceptions about the risk phrases (categories) that some forecasters use to communicate the probability of tornadoes. The data come from WX19. Review the [reference report](http://risk.ou.edu/downloads/news/WX19-Reference-Report.pdf) for more information and complete question wording. Some key findings from this experiment include:

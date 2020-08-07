@@ -52,7 +52,6 @@ survey_data$Numeracy <- factor(survey_data$Numeracy, levels = c("Low", "Moderate
 survey_data$Area <- factor(survey_data$rural, labels = c("Urban", "Suburban", "Rural"))
 survey_data$Understanding <- car::recode(survey_data$und_weather, "1 = 'High'; 2 = 'Moderate'; 3:5 = 'Low'")
 survey_data$Understanding <- factor(survey_data$Understanding, levels = c("Low", "Moderate", "High"))
-table(survey_data$Understanding)
 survey_data$Year <- factor(survey_data$survey_year)
 survey_data$All <- "All"
 groups <- c("All" = "All", 
@@ -673,13 +672,12 @@ selectInput(inputId = 'neg_group', label = 'Select a grouping', choices = groups
 We would like to know how YOU weigh the probability and intensity of extreme weather events. Please rate the risk of the following tornado scenarios: A [5:100]% chance of a [Light (EF-0)|Moderate (EF-1)|Significant (EF-2)|Severe (EF-3)|Devastating (EF-4)|Incredible (EF-5)] tornado.
 
 ```{r}
-prop_data_long <- select(survey_data, p_id, extprob_a_prob, extprob_b_prob, extprob_c_prob) %>% pivot_longer(extprob_a_prob:extprob_c_prob, names_to = "Prob_Time", values_to = "Prob")
-int_data_long <- select(survey_data, p_id, extprob_a_int, extprob_b_int, extprob_c_int) %>% pivot_longer(extprob_a_int:extprob_c_int, names_to = "Int_Time", values_to = "Int")
-perc_data_long <- select(survey_data, p_id, extprob_a, extprob_b, extprob_c) %>% pivot_longer(extprob_a:extprob_c, names_to = "Perc_Time", values_to = "Perc")
-long_data <- left_join(prop_data_long, int_data_long, by = "p_id")
-long_data <- left_join(long_data, perc_data_long, by = "p_id")
-long_data <- left_join(long_data, survey_data %>% select(p_id, tibble(groups)$groups), by = "p_id")
-
+exp_data <- survey_data %>% drop_na(extprob_a_prob)
+prop_data_long <- select(exp_data, p_id, extprob_a_prob, extprob_b_prob, extprob_c_prob) %>% pivot_longer(extprob_a_prob:extprob_c_prob, names_to = "Prob_Time", values_to = "Prob")
+int_data_long <- select(exp_data, extprob_a_int, extprob_b_int, extprob_c_int) %>% pivot_longer(extprob_a_int:extprob_c_int, names_to = "Int_Time", values_to = "Int")
+perc_data_long <- select(exp_data, extprob_a, extprob_b, extprob_c) %>% pivot_longer(extprob_a:extprob_c, names_to = "Perc_Time", values_to = "Perc")
+long_data <- bind_cols(prop_data_long, int_data_long, perc_data_long)
+long_data <- left_join(long_data, exp_data %>% select(p_id, data.frame(groups)$groups), by = "p_id")
 long_data$Int <- factor(long_data$Int, levels = c("a Light (EF-0)",
                                                 "a Moderate (EF-1)",
                                                 "a Significant (EF-2)",

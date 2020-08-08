@@ -1047,6 +1047,62 @@ DT::datatable(variable_data,
 # https://matt-dray.github.io/earl18-crosstalk/04_leaflet-flexdash-dt-crosstalk.html
 ```
 
+Time Series
+======================================================================
+Sidebar {.sidebar data-width=300}
+-----------------------------------------------------------------------
+<br/>
+<br/>
+
+```{r}
+ts_data <- survey_data %>% 
+  select(data.frame(groups)$groups, follow, plan_around, und_weather)
+
+selectInput(inputId = 'ts_meas', label = 'Select a measure', choices = names(ts_data %>% select(follow:und_weather)))
+selectInput(inputId = 'ts_group', label = 'Select a grouping', choices = groups)
+```
+
+Row
+-----------------------------------------------------------------------
+
+### Time Series Plot
+
+```{r}
+renderPlot({
+  p1 <- ggplot(ts_data %>% drop_na(input$ts_group, input$ts_meas), aes_string(x = "Year", y = input$ts_meas, color = input$ts_group, group = input$ts_group)) +
+    stat_summary(size = 1.5, geom = "pointrange", position = position_dodge(width = 0.5)) +
+    stat_summary(size = 1.5, geom = "line", position = position_dodge(width = 0.5)) +
+    labs(x = "Week", y = "Mean", fill = "Group", 
+         title = variable_data[variable_data$id == input$ts_meas, ]$question) + 
+    theme_minimal(base_size = 20) +
+    theme(title = element_text(size = 14)) +
+    scale_color_viridis(discrete = TRUE)
+  print(p1)
+})
+```
+
+Row
+-----------------------------------------------------------------------
+
+### Data Dictionary
+
+```{r}
+DT::datatable(variable_data %>% filter(id %in% names(ts_data %>% select(follow:und_weather))),
+              filter = "top",
+              selection = "single",
+              rownames = FALSE,
+              style = "bootstrap",
+              class = "compact",
+              options = list(
+                columnDefs = list(list(width = "600", targets = c(2))),
+                dom = "Blrtip"),
+              colnames = c(
+                "Question ID" = "id",
+                "Question Text" = "question",
+                "Response Options" = "response_options")
+              )
+```
+
 Demographics
 ======================================================================
 

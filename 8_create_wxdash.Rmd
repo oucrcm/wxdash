@@ -39,6 +39,7 @@ fips_map@data <- fips_map@data %>%
 fips_map$CWA <- as.character(fips_map$CWA)
 
 survey_data <- read.csv("outputs/base_survey_data.csv")
+psych::describe(survey_data)
 
 # Define demographic groups
 survey_data$Gender <- factor(survey_data$MALE, labels = c("Female", "Male"))
@@ -1056,9 +1057,10 @@ Sidebar {.sidebar data-width=300}
 
 ```{r}
 ts_data <- survey_data %>% 
-  select(data.frame(groups)$groups, follow, plan_around, und_weather)
+  select(data.frame(groups)$groups, follow:risk_fire, alert_und, nws_trust:wx_info8, tor_map_und:svr_watchwarn_und, rec_all:rec_large_group, rec_stream, resp_ignore:resp_large_group, 
+         resep_stream, wthr_info_paper:wthr_info_phone, recep, subj_comp, obj_comp, resp)
 
-selectInput(inputId = 'ts_meas', label = 'Select a measure', choices = names(ts_data %>% select(follow:und_weather)))
+selectInput(inputId = 'ts_meas', label = 'Select a measure', choices = names(ts_data %>% select(-data.frame(groups)$groups)))
 selectInput(inputId = 'ts_group', label = 'Select a grouping', choices = groups)
 ```
 

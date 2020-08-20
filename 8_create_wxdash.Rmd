@@ -1,5 +1,5 @@
 ---
-title: "WxDashExp"
+title: "WxDash"
 resource_files:
 - outputs/cwa_estimates/cwa_estimates.dbf
 - outputs/cwa_estimates/cwa_estimates.prj

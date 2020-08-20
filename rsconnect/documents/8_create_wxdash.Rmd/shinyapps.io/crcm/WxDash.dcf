@@ -1,0 +1,12 @@
+name: WxDash
+title: WxDash
+username:
+account: crcm
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 1198830
+bundleId: 3538850
+url: https://crcm.shinyapps.io/WxDash/
+when: 1597945906.72945
+asMultiple: FALSE
+asStatic: FALSE

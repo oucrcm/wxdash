@@ -14,7 +14,7 @@ output:
   flexdashboard::flex_dashboard:
     orientation: rows
     # social: menu
-    # source_code: embed
+    source_code: "https://github.com/oucrcm/wxdash"
     theme: simplex
     vertical_layout: scroll
 ---
@@ -1175,11 +1175,12 @@ About
 
 **Methodology.** This project works to overcome some these challenges by developing a database of community statistics and this interactive platform that provides some of this information. The approach we use leverages population scale data from the Severe Weather and Society Survey (Wx Survey) and known sub-population characteristics from the US Census to estimate statistics of interest to the weather enterprise. Run by the [University of Oklahoma Center for Risk and Crisis Management (CRCM)](http://crcm.ou.edu), the Wx Survey is a yearly survey of the US public that includes two types of questions: (1) baseline questions that measure core concepts such as risk perceptions, forecast and warning reception, comprehension, and response, hazard comprehension, and trust in information sources; and (2) one-time questions and experiments that address various topics, such as the impact of uncertainty and probabilistic information on risk judgments and protective action decision making. See [Silva et al. 2017](http://risk.ou.edu/downloads/news/WX17-Reference-Report.pdf), [Silva et al. 2018](http://risk.ou.edu/downloads/news/WX18-Reference-Report.pdf), and [Silva et al. 2019](http://risk.ou.edu/downloads/news/WX19-Reference-Report.pdf) for information about each survey we conduct, including a complete listing of questions. For more information about the composite measures we produce from these surveys and the steps we take to ensure that the measures are reliable, see:
     
-- Ripberger, J. T., Krocak, M. J., Wehde, W. W., Allan, J. N., Silva, C., & Jenkins-Smith, H. (2019). [Measuring Tornado Warning Reception, Comprehension, and Response in the United States](https://doi.org/10.1175/WCAS-D-19-0015.1). Weather, Climate, and Society, 11(4), 863-880.
+- [Measuring Tornado Warning Reception, Comprehension, and Response in the United States](https://doi.org/10.1175/WCAS-D-19-0015.1)
 
 Large population surveys such as the Wx Survey provide valuable information about the population as a whole, but [small area estimation (SEA)](https://www.nap.edu/read/13174/chapter/7) is necessary to identify differences across geographic sub-populations. This project uses multilevel regression and poststratification [MRP](https://journals.sagepub.com/doi/epub/10.1177/1478929919864773) to provide these estimates by NWS County Warning Area (CWA) and county. For more information about this methodology and how we apply it in this context, see:
 
-- Ripberger, J. T., Krocak, M. J., Wehde, W. W., Allan, J. N., Silva, C., & Jenkins-Smith, H. (2019). [Exploring Community Differences in Tornado Warning Reception, Comprehension, and Response Across the United States](https://www.dropbox.com/s/9ktiixwcm47zna3/manuscript.pdf?dl=0). Working Paper, OU Center for Risk and Crisis Management.
+- [Exploring Community Differences in Tornado Warning Reception, Comprehension, and Response Across the United States](https://doi.org/10.1175/BAMS-D-19-0064.1)
+- [Geographic Distributions of Extreme Weather Risk Perceptions in the United States](https://doi.org/10.1111/risa.13569)
 
 **Support.** Funding for this project comes from multiple sources. The University of Oklahoma provides support for data collection. The US Office of Weather and Air Quality (OWAQ) provides support for  data analysis, programming, and maintenance.
 

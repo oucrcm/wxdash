@@ -938,7 +938,7 @@ cat <- survey_data %>%
   summarise_all(n_distinct) %>%
   select_if(any_vars((.) <= 11))
 
-selectInput(inputId = 'exp_variable', label = 'Select a variable', choices = variable_data$id)
+selectInput(inputId = 'exp_variable', label = 'Select a variable', choices = sort(variable_data$id), selected = "follow")
 selectInput(inputId = 'exp_group', label = 'Select a grouping', choices = groups)
 ```
 
@@ -1098,7 +1098,7 @@ dem_map_cols <- viridis(100)
 
 output$demo_map <- renderLeaflet({
   fips_map$demplot <- fips_map@data[, input$dem_variable]
-  dem_map_pal <- colorNumeric(palette = dem_map_cols, domain = c(min(fips_map$demplot, na.rm = TRUE), max(fips_map$demplot, na.rm = TRUE)))
+  dem_map_pal <- colorNumeric(palette = dem_map_cols, domain = c(min(fips_map$demplot, na.rm = TRUE), max(fips_map$demplot, na.rm = TRUE)), na.color = NA)
   p_popup <- with(fips_map@data, paste0(COUNTYNAME, ", County ", "(", CWA, ")", "<br>",
                                    "Estimate: ", round(demplot, 2)))
   l <- leaflet(fips_map) %>%

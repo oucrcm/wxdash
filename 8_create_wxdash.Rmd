@@ -1091,7 +1091,7 @@ selectInput(inputId = 'dem_variable', label = 'Select a demographic', choices = 
                                                                                   'Percentage minority (all persons except white, non-Hispanic)' = 'EP_MINRTY',
                                                                                   'Percentage of persons (age 5+) who speak English less than well' = 'EP_LIMENG',
                                                                                   'Percentage of housing in structures with 10 or more units' = 'EP_MUNIT',
-                                                                                  'Percentage of mobile homes' = 'MP_MOBILE',
+                                                                                  'Percentage of mobile homes' = 'EP_MOBILE',
                                                                                   'Percentage of occupied housing units with more people than rooms' = 'EP_CROWD',
                                                                                   'Percentage of households with no vehicle available' = 'EP_NOVEH',
                                                                                   'Percentage of persons in institutionalized group quarters' = 'EP_GROUPQ'))

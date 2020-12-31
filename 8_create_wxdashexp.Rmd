@@ -96,7 +96,8 @@ selectInput(inputId = 'variable', label = 'Select composite measure to explore',
                                                                                  'Tornado Warning Comprehension (Objective)' = 'OBJ_COM',
                                                                                  'Tornado Warning Response' = 'RESP',
                                                                                  'Efficacy of Protective Actions' = 'EFFICAC', 
-                                                                                 'Vulnerability to Tornado Myths' = 'MYTH'))
+                                                                                 'Vulnerability to Tornado Myths' = 'MYTH',
+                                                                                 'Severe Weather Preparedness' = 'READY'))
 ```
 
 **Instructions.** Select a measure from the drop down menu (above) to see an *average person percentile (APP) rank* estimate for each County Warning Area (CWA). These estimates compare the average percentile rank of adults who live in a CWA to the distribution of adults in the US. For example, a APP rank estimate of 62 indicates that, on average, adults who live in that CWA are above the national average; they score higher than 62% of adults across the country. If you click on the map, a box will open that provides more information on the CWA, such as the percentile rank of the CWA in comparison to other CWAs. A plot will also come up below that maps the distribution of APP ranks by county within the CWA you select.
@@ -253,12 +254,20 @@ R6 <- data.frame(
                "[To the best of your knowledge, are the following statements about tornadoes true or false:] When driving, you should not take shelter from tornadoes under a bridge or overpass.",
                "[To the best of your knowledge, are the following statements about tornadoes true or false:] When sheltering in a house from a tornado, you should open all the windows to equalize the pressure inside and outside to prevent the house from exploding."))
 
+R7 <- data.frame(
+  question = c("In the last year, have you prepared a disaster supply kit with emergency supplies like water, food and medicine that is kept in a designated place in your home?",
+               "In the last year, have you prepared a small kit with emergency supplies that you keep at home, in your car or where you work to take with you if you had to leave quickly?",
+               "In the last year, have you made a specific plan for how you and your family would communicate in an emergency situation if you were separated?",
+               "In the last year, have you established a specific meeting place to reunite in the event you and your family cannot return home or are evacuated?",
+               "In the last year, have you practiced or drilled on what to do in an emergency at home?"))
+
 composite_questions <- bind_rows(R1 %>% mutate(measure = "RECEP"), 
                                  R2 %>% mutate(measure = "SUB_COM"),
                                  R3 %>% mutate(measure = "OBJ_COM"),
                                  R4 %>% mutate(measure = "RESP"),
                                  R5 %>% mutate(measure = "EFFICAC"),
-                                 R6 %>% mutate(measure = "MYTH"))
+                                 R6 %>% mutate(measure = "MYTH"),
+                                 R7 %>% mutate(measure = "READY"))
 
 DT::renderDataTable({
   data <- composite_questions %>% 
@@ -429,8 +438,6 @@ Sidebar {.sidebar data-width=300}
 selectInput(inputId = 'att', label = 'Select a grouping', choices = groups)
 checkboxInput(inputId = 'check', label = 'Show text labels?', value = FALSE)
 ```
-
-These data come from WX17, WX18 & WX19. Review the [reference reports](http://risk.ou.edu/downloads/news/WX18-Reference-Report.pdf) for more information and complete question wording.
 
 Row
 -----------------------------------------------------------------------

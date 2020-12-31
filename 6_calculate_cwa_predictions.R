@@ -35,6 +35,7 @@ cwa_torn_fit <- readRDS(paste0(outputs, "cwa_models/cwa_torn_fit.Rds"))
 cwa_flood_fit <- readRDS(paste0(outputs, "cwa_models/cwa_flood_fit.Rds"))
 cwa_hurr_fit <- readRDS(paste0(outputs, "cwa_models/cwa_hurr_fit.Rds"))
 cwa_fire_fit <- readRDS(paste0(outputs, "cwa_models/cwa_fire_fit.Rds"))
+cwa_ready_fit <- readRDS(paste0(outputs, "cwa_models/cwa_ready_fit.Rds"))
 
 # CWA Estimates -------------------------
 recep_predictions <- census_data %>%
@@ -135,10 +136,17 @@ fire_predictions <- census_data %>%
   summarise(person_z = sum(person_z)) %>%
   mutate(measure = "PER_FIR")
 
+ready_predictions <- census_data %>%
+  mutate(person_z = colMedians(posterior_predict(cwa_ready_fit, newdata = ., allow.new.levels = TRUE))) %>%
+  mutate(person_z = person_z * DEMGRP_PROP) %>%
+  group_by(CWA) %>%
+  summarise(person_z = sum(person_z)) %>%
+  mutate(measure = "READY")
+
 # Make Shapefile ----------------------------------------
 all_predictions <- bind_rows(recep_predictions, subj_comp_predictions, obj_comp_predictions, resp_predictions, efficacy_predictions, 
                              myth_predictions, heat_predictions, drought_predictions, cold_predictions, snow_predictions, 
-                             tornado_predictions, flood_predictions, hurricane_predictions, fire_predictions) %>%
+                             tornado_predictions, flood_predictions, hurricane_predictions, fire_predictions, ready_predictions) %>%
   pivot_wider(names_from = measure, values_from = person_z) # only person z-scores
 
 cwa_shp <- read_sf(paste0(downloads, "w_03mr20"), "w_03mr20")

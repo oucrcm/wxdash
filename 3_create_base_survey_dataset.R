@@ -185,5 +185,13 @@ myth_fit <- ltm(myth_data ~ z1)
 myth_scores <- tibble(p_id = filter(survey_data, survey_year == 2017)$p_id, myth = ltm::factor.scores(myth_fit, resp.patterns = myth_data)$score.dat$z1)
 survey_data <- left_join(survey_data, myth_scores, by = "p_id")
 
+ready_comp_data <- survey_data %>%
+  filter(survey_year %in% c(2019, 2020)) %>%
+  select(c(rq_4:rq_8)) %>% 
+  mutate_all(funs(ifelse(. == 1, 1, 0)))
+ready_comp_fit <- ltm(ready_comp_data ~ z1)
+ready_comp_scores <- tibble(p_id = filter(survey_data, survey_year %in% c(2019, 2020))$p_id, ready = ltm::factor.scores(ready_comp_fit, resp.patterns = ready_comp_data)$score.dat$z1)
+survey_data <- left_join(survey_data, ready_comp_scores, by = "p_id")
+
 # Write Data -----------------------------
 write_csv(survey_data, paste0(outputs, "base_survey_data.csv"))

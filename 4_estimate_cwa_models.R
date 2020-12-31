@@ -63,40 +63,47 @@ saveRDS(cwa_myth_fit, paste0(outputs, "cwa_models/cwa_myth_fit.Rds"))
 # Risk Perception Models - Already Run, Output Saved -------------------------
 cwa_heat_fit <- stan_lmer(scale_risk_heat ~ 1 + (1|MALE) + (1|AGE_GROUP) + (1|HISP) + (1|RACE_GROUP) + (1|CWA) + (1|MALE:AGE_GROUP) +
                             CWA_HEAT + CWA_RPL_THEME1 + CWA_RPL_THEME2 + CWA_RPL_THEME3 + CWA_RPL_THEME4,
-                          data = survey_data, seed = 50, QR = TRUE, warmup = warmup, iter = iter, chains = chains, adapt_delta = 0.99999, )
+                          data = survey_data, seed = 50, QR = TRUE, warmup = warmup, iter = iter, chains = chains, adapt_delta = 0.99999)
 saveRDS(cwa_heat_fit, paste0(outputs, "cwa_models/cwa_heat_fit.Rds"))
 
 cwa_drought_fit <- stan_lmer(scale_risk_drought ~ 1 + (1|MALE) + (1|AGE_GROUP) + (1|HISP) + (1|RACE_GROUP) + (1|CWA) + (1|MALE:AGE_GROUP) +
                                CWA_DROUGHT + CWA_RPL_THEME1 + CWA_RPL_THEME2 + CWA_RPL_THEME3 + CWA_RPL_THEME4,
-                             data = survey_data, seed = 50, QR = TRUE, warmup = warmup, iter = iter, chains = chains, adapt_delta = 0.99999, )
+                             data = survey_data, seed = 50, QR = TRUE, warmup = warmup, iter = iter, chains = chains, adapt_delta = 0.99999)
 saveRDS(cwa_drought_fit, paste0(outputs, "cwa_models/cwa_drought_fit.Rds"))
 
 cwa_cold_fit <- stan_lmer(scale_risk_cold ~ 1 + (1|MALE) + (1|AGE_GROUP) + (1|HISP) + (1|RACE_GROUP) + (1|CWA) + (1|MALE:AGE_GROUP) +
                             CWA_COLD + CWA_RPL_THEME1 + CWA_RPL_THEME2 + CWA_RPL_THEME3 + CWA_RPL_THEME4,
-                          data = survey_data, seed = 50, QR = TRUE, warmup = warmup, iter = iter, chains = chains, adapt_delta = 0.99999, )
+                          data = survey_data, seed = 50, QR = TRUE, warmup = warmup, iter = iter, chains = chains, adapt_delta = 0.99999)
 saveRDS(cwa_cold_fit, paste0(outputs, "cwa_models/cwa_cold_fit.Rds"))
 
 cwa_snow_fit <- stan_lmer(scale_risk_snow ~ 1 + (1|MALE) + (1|AGE_GROUP) + (1|HISP) + (1|RACE_GROUP) + (1|CWA) + (1|MALE:AGE_GROUP) +
                             CWA_SNOW + CWA_RPL_THEME1 + CWA_RPL_THEME2 + CWA_RPL_THEME3 + CWA_RPL_THEME4,
-                          data = survey_data, seed = 50, QR = TRUE, warmup = warmup, iter = iter, chains = chains, adapt_delta = 0.99999, )
+                          data = survey_data, seed = 50, QR = TRUE, warmup = warmup, iter = iter, chains = chains, adapt_delta = 0.99999)
 saveRDS(cwa_snow_fit, paste0(outputs, "cwa_models/cwa_snow_fit.Rds"))
 
 cwa_torn_fit <- stan_lmer(scale_risk_tor ~ 1 + (1|MALE) + (1|AGE_GROUP) + (1|HISP) + (1|RACE_GROUP) + (1|CWA) + (1|MALE:AGE_GROUP) +
                             CWA_TORN + CWA_RPL_THEME1 + CWA_RPL_THEME2 + CWA_RPL_THEME3 + CWA_RPL_THEME4,
-                          data = survey_data, seed = 50, QR = TRUE, warmup = warmup, iter = iter, chains = chains, adapt_delta = 0.99999, )
+                          data = survey_data, seed = 50, QR = TRUE, warmup = warmup, iter = iter, chains = chains, adapt_delta = 0.99999)
 saveRDS(cwa_torn_fit, paste0(outputs, "cwa_models/cwa_torn_fit.Rds"))
 
 cwa_flood_fit <- stan_lmer(scale_risk_flood ~ 1 + (1|MALE) + (1|AGE_GROUP) + (1|HISP) + (1|RACE_GROUP) + (1|CWA) + (1|MALE:AGE_GROUP) +
                              CWA_FLOOD + CWA_RPL_THEME1 + CWA_RPL_THEME2 + CWA_RPL_THEME3 + CWA_RPL_THEME4,
-                           data = survey_data, seed = 50, QR = TRUE, warmup = warmup, iter = iter, chains = chains, adapt_delta = 0.99999, )
+                           data = survey_data, seed = 50, QR = TRUE, warmup = warmup, iter = iter, chains = chains, adapt_delta = 0.99999)
 saveRDS(cwa_flood_fit, paste0(outputs, "cwa_models/cwa_flood_fit.Rds"))
 
 cwa_hurr_fit <- stan_lmer(scale_risk_hur ~ 1 + (1|MALE) + (1|AGE_GROUP) + (1|HISP) + (1|RACE_GROUP) + (1|CWA) + (1|MALE:AGE_GROUP) +
                             CWA_HURR + CWA_RPL_THEME1 + CWA_RPL_THEME2 + CWA_RPL_THEME3 + CWA_RPL_THEME4,
-                          data = survey_data, seed = 50, QR = TRUE, warmup = warmup, iter = iter, chains = chains, adapt_delta = 0.99999, )
+                          data = survey_data, seed = 50, QR = TRUE, warmup = warmup, iter = iter, chains = chains, adapt_delta = 0.99999)
 saveRDS(cwa_hurr_fit, paste0(outputs, "cwa_models/cwa_hurr_fit.Rds"))
 
 cwa_fire_fit <- stan_lmer(scale_risk_fire ~ 1 + (1|MALE) + (1|AGE_GROUP) + (1|HISP) + (1|RACE_GROUP) + (1|CWA) + (1|MALE:AGE_GROUP) +
                             CWA_FIRE + CWA_RPL_THEME1 + CWA_RPL_THEME2 + CWA_RPL_THEME3 + CWA_RPL_THEME4,
-                          data = survey_data, seed = 50, QR = TRUE, warmup = warmup, iter = iter, chains = chains, adapt_delta = 0.99999, )
+                          data = survey_data, seed = 50, QR = TRUE, warmup = warmup, iter = iter, chains = chains, adapt_delta = 0.99999)
 saveRDS(cwa_fire_fit, paste0(outputs, "cwa_models/cwa_fire_fit.Rds"))
+
+# Ready Models - Already Run, Output Saved -------------------------
+cwa_ready_fit <- stan_lmer(ready ~ 1 + (1|MALE) + (1|AGE_GROUP) + (1|HISP) + (1|RACE_GROUP) + (1|CWA) + (1|MALE:AGE_GROUP) +
+                              CWA_HEAT + CWA_DROUGHT + CWA_COLD + CWA_SNOW + CWA_TORN + CWA_FLOOD + CWA_HURR + CWA_FIRE + 
+                              CWA_RPL_THEME1 + CWA_RPL_THEME2 + CWA_RPL_THEME3 + CWA_RPL_THEME4, 
+                           data = survey_data, seed = 50, QR = TRUE, warmup = warmup, iter = iter, chains = chains, adapt_delta = 0.99999)
+saveRDS(cwa_ready_fit, paste0(outputs, "cwa_models/cwa_ready_fit.Rds"))

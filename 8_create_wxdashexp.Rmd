@@ -997,7 +997,8 @@ renderPlot({
     geom_bar(stat = "identity", position = "dodge") +
     geom_text(position = position_dodge(width = .9), size = 5, vjust = -0.2, color = "black") +
     labs(x = "Response", y = "Respondents (%)", fill = "Group", 
-         title = variable_data[variable_data$id == select_react() %>% pull(var = id), ]$question) +
+         title = variable_data[variable_data$id == select_react() %>% pull(var = id), ]$question,
+         caption = variable_data[variable_data$id == select_react() %>% pull(var = id), ]$id) +
     theme_minimal(base_size = 20) +
     scale_fill_viridis(discrete = TRUE) +
     theme(title = element_text(size = 14))
@@ -1006,7 +1007,8 @@ renderPlot({
                aes_string(y = select_react() %>% pull(var = id), x = input$exp_group, fill = input$exp_group)) +
     geom_boxplot() +
     labs(x = "Group", y = "Response", fill = "Group", 
-         title = variable_data[variable_data$id == select_react() %>% pull(var = id), ]$question) +
+         title = variable_data[variable_data$id == select_react() %>% pull(var = id), ]$question,
+         caption = variable_data[variable_data$id == select_react() %>% pull(var = id), ]$id) +
     theme_minimal(base_size = 20) +
     scale_fill_viridis(discrete = TRUE) +
     theme(title = element_text(size = 14))
@@ -1024,7 +1026,8 @@ Row
 ```{r}
 font.size <- "10pt"
 
-DT::datatable(variable_data,
+DT::datatable(variable_data %>% 
+                select(question, response_options),
               filter = "top",
               selection = "single",
               rownames = FALSE,
@@ -1035,7 +1038,6 @@ DT::datatable(variable_data,
                                                             paste0("$(this.api().table().container()).css({'font-size': '", 
                                                                    font.size, "'});"),"}")), # governs text size
               colnames = c(
-                "Question ID" = "id",
                 "Question Text" = "question",
                 "Response Options" = "response_options"),
               elementId = 'table')
@@ -1053,7 +1055,6 @@ select_react <- reactive({
   })
 ```
 
-
 Time Series
 ======================================================================
 Sidebar {.sidebar data-width=300}
@@ -1063,7 +1064,7 @@ Sidebar {.sidebar data-width=300}
 <br/>
 
 ```{r}
-ts_data <- survey_data %>% 
+ts_data <- survey_data %>%
   select(data.frame(groups)$groups, follow:risk_fire, alert_und, nws_trust:wx_info8, tor_map_und:svr_watchwarn_und, rec_all:rec_large_group, rec_stream,
          resp_ignore:resp_large_group, resep_stream, wthr_info_paper:wthr_info_phone, rq_1:rq_10, recep, subj_comp, obj_comp, resp, ready)
 selectInput(inputId = 'ts_group', label = 'Select a grouping', choices = groups)
@@ -1082,16 +1083,17 @@ Row
 
 ```{r}
 renderPlot({
-  p <- ggplot(ts_data %>% drop_na(input$ts_group, select_react() %>% pull(var = id)), 
-  aes_string(x = "Year", y = select_react() %>% pull(var = id), color = input$ts_group, group = input$ts_group)) +
+  p <- ggplot(ts_data %>% drop_na(input$ts_group, ts_select_react() %>% pull(var = id)),
+  aes_string(x = "Year", y = ts_select_react() %>% pull(var = id), color = input$ts_group, group = input$ts_group)) +
     stat_summary(size = 1.5, geom = "pointrange", position = position_dodge(width = 0.25)) +
     stat_summary(size = 1.5, geom = "line", position = position_dodge(width = 0.25)) +
-    labs(x = "Week", y = "Mean", fill = "Group", 
-         title = variable_data[variable_data$id == select_react() %>% pull(var = id), ]$question) + 
+    labs(x = "Week", y = "Mean", fill = "Group",
+         title = variable_data[variable_data$id == ts_select_react() %>% pull(var = id), ]$question,
+         caption = variable_data[variable_data$id == ts_select_react() %>% pull(var = id), ]$id) +
     theme_minimal(base_size = 20) +
     theme(title = element_text(size = 14)) +
     scale_color_viridis(discrete = TRUE)
-  ps <- p + lims(y = c(min(ts_data[, select_react() %>% pull(var = id)], na.rm = TRUE), max(ts_data[, select_react() %>% pull(var = id)], na.rm = TRUE)))
+  ps <- p + lims(y = c(min(ts_data[, ts_select_react() %>% pull(var = id)], na.rm = TRUE), max(ts_data[, ts_select_react() %>% pull(var = id)], na.rm = TRUE)))
   if (input$scale == FALSE) {print(p)}
   if (input$scale == TRUE) {print(ps)}
 })
@@ -1105,30 +1107,32 @@ Row
 ```{r}
 font.size <- "10pt"
 
-DT::datatable(variable_data %>% filter(id %in% names(ts_data)),
+ts_variable_data <- variable_data %>% 
+  filter(id %in% names(ts_data)) %>% 
+  mutate(row_num = c(1:nrow(.)))
+
+DT::datatable(ts_variable_data %>% 
+                select(question, response_options),
               filter = "top",
               selection = "single",
               rownames = FALSE,
               style = "bootstrap",
               class = "compact",
-              options = list(dom = "Blrtip", 
-                             initComplete = htmlwidgets::JS("function(settings, json) {", 
-                                                            paste0("$(this.api().table().container()).css({'font-size': '", 
+              options = list(dom = "Blrtip",
+                             initComplete = htmlwidgets::JS("function(settings, json) {",
+                                                            paste0("$(this.api().table().container()).css({'font-size': '",
                                                                    font.size, "'});"),"}")), # governs text size
               colnames = c(
-                "Question ID" = "id",
                 "Question Text" = "question",
                 "Response Options" = "response_options"),
               elementId = 'table1')
 
-variable_data <- variable_data %>% mutate(row_num = c(1:nrow(variable_data)))
-
-select_react <- reactive({
+ts_select_react <- reactive({
   if(is.null(input$table1_row_last_clicked)){
-    variable_data %>%
+    ts_variable_data %>%
       filter(row_num == 1) %>%
-      select(id)} 
-  else {variable_data %>%
+      select(id)}
+  else {ts_variable_data %>%
       filter(row_num == input$table1_row_last_clicked) %>%
       select(id)}
   })

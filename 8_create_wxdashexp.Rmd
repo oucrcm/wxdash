@@ -945,9 +945,23 @@ Explore Survey
 ======================================================================
 Sidebar {.sidebar data-width=300}
 -----------------------------------------------------------------------
+
 <br/>
 <br/>
 
+```{r}
+selectInput(inputId = 'exp_group', label = 'Select a grouping', choices = groups)
+```
+
+<br/>
+<br/>
+
+Click on a survey question in the table to the right and a subgroup in the drop-down list above to see the distribution of survey responses to each question by population subgroup.
+
+Row
+-----------------------------------------------------------------------
+
+### Distribution
 ```{r}
 num <- survey_data %>%
   summarise_all(n_distinct) %>%
@@ -957,15 +971,6 @@ cat <- survey_data %>%
   summarise_all(n_distinct) %>%
   select_if(any_vars((.) <= 11))
 
-selectInput(inputId = 'exp_variable', label = 'Select a variable', choices = sort(variable_data$id), selected = "follow")
-selectInput(inputId = 'exp_group', label = 'Select a grouping', choices = groups)
-```
-
-Row
------------------------------------------------------------------------
-
-### Distribution
-```{r}
 d <- reactive({
   survey_data %>%
     group_by(!!as.name(input$exp_group), !!as.name(input$exp_variable)) %>%
@@ -976,64 +981,100 @@ d <- reactive({
     mutate(resp = factor(!!as.name(input$exp_variable)))
 })
 
+d <- reactive({
+  survey_data %>%
+    group_by(!!as.name(input$exp_group), !!as.name(select_react() %>% pull(var = id))) %>%
+    drop_na(input$exp_group, select_react() %>% pull(var = id)) %>% 
+    summarize(n = n()) %>% 
+    mutate(p = round(n/sum(n) * 100)) %>%
+    mutate(l = paste0(p, "%")) %>% 
+    mutate(resp = factor(!!as.name(select_react() %>% pull(var = id))))
+})
+
 renderPlot({
-  p1 <- ggplot(d() %>% drop_na(input$exp_group), aes_string(x = "resp", y = "p", fill = input$exp_group, label = "l")) +
+  p1 <- ggplot(d() %>% drop_na(input$exp_group, select_react() %>% pull(var = id)), 
+               aes_string(x = "resp", y = "p", fill = input$exp_group, label = "l")) +
     geom_bar(stat = "identity", position = "dodge") +
-    geom_text(position = position_dodge(width = .9), size = 6, vjust = -0.2, color = "black") +
-    labs(x = "Response", y = "Respondents (%)", fill = "Group") +
-    theme_minimal() +
+    geom_text(position = position_dodge(width = .9), size = 5, vjust = -0.2, color = "black") +
+    labs(x = "Response", y = "Respondents (%)", fill = "Group", 
+         title = variable_data[variable_data$id == select_react() %>% pull(var = id), ]$question,
+         caption = variable_data[variable_data$id == select_react() %>% pull(var = id), ]$id) +
+    theme_minimal(base_size = 20) +
     scale_fill_viridis(discrete = TRUE) +
-    theme(text = element_text(size = 18))
-  p2 <- ggplot(survey_data %>% drop_na(input$exp_group), aes_string(y = input$exp_variable, x = input$exp_group, fill = input$exp_group)) +
+    theme(title = element_text(size = 14))
+  
+  p2 <- ggplot(survey_data %>% drop_na(input$exp_group, select_react() %>% pull(var = id)), 
+               aes_string(y = select_react() %>% pull(var = id), x = input$exp_group, fill = input$exp_group)) +
     geom_boxplot() +
-    labs(x = "Group", y = "Response", fill = "Group") +
-    theme_minimal() +
+    labs(x = "Group", y = "Response", fill = "Group", 
+         title = variable_data[variable_data$id == select_react() %>% pull(var = id), ]$question,
+         caption = variable_data[variable_data$id == select_react() %>% pull(var = id), ]$id) +
+    theme_minimal(base_size = 20) +
     scale_fill_viridis(discrete = TRUE) +
-    theme(text = element_text(size = 18))
-  if (input$exp_variable %in% names(cat)) {print(p1)}
-  if (input$exp_variable %in% names(num)) {print(p2)}
+    theme(title = element_text(size = 14))
+  
+  if (select_react() %>% pull(var = id) %in% names(cat)) {print(p1)}
+  if (select_react() %>% pull(var = id) %in% names(num)) {print(p2)}
 })
 ```
 
 Row
 -----------------------------------------------------------------------
 
-### Data Dictionary
+### Questions (click on a question)
 
 ```{r}
-DT::datatable(variable_data,
+font.size <- "10pt"
+
+DT::datatable(variable_data %>% 
+                select(question, response_options),
               filter = "top",
               selection = "single",
               rownames = FALSE,
               style = "bootstrap",
               class = "compact",
-              options = list(
-                columnDefs = list(list(width = "600", targets = c(2))),
-                dom = "Blrtip"),
+              options = list(dom = "Blrtip", 
+                             initComplete = htmlwidgets::JS("function(settings, json) {", 
+                                                            paste0("$(this.api().table().container()).css({'font-size': '", 
+                                                                   font.size, "'});"),"}")), # governs text size
               colnames = c(
-                "Question ID" = "id",
                 "Question Text" = "question",
-                "Response Options" = "response_options")
-              )
-# https://matt-dray.github.io/earl18-crosstalk/04_leaflet-flexdash-dt-crosstalk.html
+                "Response Options" = "response_options"),
+              elementId = 'table')
+
+variable_data <- variable_data %>% mutate(row_num = c(1:nrow(variable_data)))
+
+select_react <- reactive({
+  if(is.null(input$table_row_last_clicked)){
+    variable_data %>%
+      filter(row_num == 1) %>%
+      select(id)} 
+  else {variable_data %>%
+      filter(row_num == input$table_row_last_clicked) %>%
+      select(id)}
+  })
 ```
 
 Time Series
 ======================================================================
 Sidebar {.sidebar data-width=300}
 -----------------------------------------------------------------------
+
 <br/>
 <br/>
 
 ```{r}
-ts_data <- survey_data %>% 
+ts_data <- survey_data %>%
   select(data.frame(groups)$groups, follow:risk_fire, alert_und, nws_trust:wx_info8, tor_map_und:svr_watchwarn_und, rec_all:rec_large_group, rec_stream,
-         resp_ignore:resp_large_group, resep_stream, wthr_info_paper:wthr_info_phone, recep, subj_comp, obj_comp, resp)
-
-selectInput(inputId = 'ts_meas', label = 'Select a measure', choices = names(ts_data %>% select(-data.frame(groups)$groups)))
+         resp_ignore:resp_large_group, resep_stream, wthr_info_paper:wthr_info_phone, rq_1:rq_10, recep, subj_comp, obj_comp, resp, ready)
 selectInput(inputId = 'ts_group', label = 'Select a grouping', choices = groups)
 checkboxInput(inputId = 'scale', label = 'Show text full y-scale?', value = FALSE)
 ```
+
+<br/>
+<br/>
+
+Click on a survey question in the table to the right and a subgroup in the drop-down list above to see the distribution of survey responses to each question by population subgroup.
 
 Row
 -----------------------------------------------------------------------
@@ -1042,15 +1083,17 @@ Row
 
 ```{r}
 renderPlot({
-  p <- ggplot(ts_data %>% drop_na(input$ts_group, input$ts_meas), aes_string(x = "Year", y = input$ts_meas, color = input$ts_group, group = input$ts_group)) +
-    stat_summary(size = 1.5, geom = "pointrange", position = position_dodge(width = 0.5)) +
-    stat_summary(size = 1.5, geom = "line", position = position_dodge(width = 0.5)) +
-    labs(x = "Week", y = "Mean", fill = "Group", 
-         title = variable_data[variable_data$id == input$ts_meas, ]$question) + 
+  p <- ggplot(ts_data %>% drop_na(input$ts_group, ts_select_react() %>% pull(var = id)),
+  aes_string(x = "Year", y = ts_select_react() %>% pull(var = id), color = input$ts_group, group = input$ts_group)) +
+    stat_summary(size = 1.5, geom = "pointrange", position = position_dodge(width = 0.25)) +
+    stat_summary(size = 1.5, geom = "line", position = position_dodge(width = 0.25)) +
+    labs(x = "Week", y = "Mean", fill = "Group",
+         title = variable_data[variable_data$id == ts_select_react() %>% pull(var = id), ]$question,
+         caption = variable_data[variable_data$id == ts_select_react() %>% pull(var = id), ]$id) +
     theme_minimal(base_size = 20) +
     theme(title = element_text(size = 14)) +
     scale_color_viridis(discrete = TRUE)
-  ps <- p + lims(y = c(min(ts_data[, input$ts_meas], na.rm = TRUE), max(ts_data[, input$ts_meas], na.rm = TRUE)))
+  ps <- p + lims(y = c(min(ts_data[, ts_select_react() %>% pull(var = id)], na.rm = TRUE), max(ts_data[, ts_select_react() %>% pull(var = id)], na.rm = TRUE)))
   if (input$scale == FALSE) {print(p)}
   if (input$scale == TRUE) {print(ps)}
 })
@@ -1059,23 +1102,40 @@ renderPlot({
 Row
 -----------------------------------------------------------------------
 
-### Data Dictionary
+### Questions (click on a question)
 
 ```{r}
-DT::datatable(variable_data %>% filter(id %in% names(ts_data %>% select(-data.frame(groups)$groups))),
+font.size <- "10pt"
+
+ts_variable_data <- variable_data %>% 
+  filter(id %in% names(ts_data)) %>% 
+  mutate(row_num = c(1:nrow(.)))
+
+DT::datatable(ts_variable_data %>% 
+                select(question, response_options),
               filter = "top",
               selection = "single",
               rownames = FALSE,
               style = "bootstrap",
               class = "compact",
-              options = list(
-                columnDefs = list(list(width = "600", targets = c(2))),
-                dom = "Blrtip"),
+              options = list(dom = "Blrtip",
+                             initComplete = htmlwidgets::JS("function(settings, json) {",
+                                                            paste0("$(this.api().table().container()).css({'font-size': '",
+                                                                   font.size, "'});"),"}")), # governs text size
               colnames = c(
-                "Question ID" = "id",
                 "Question Text" = "question",
-                "Response Options" = "response_options")
-              )
+                "Response Options" = "response_options"),
+              elementId = 'table1')
+
+ts_select_react <- reactive({
+  if(is.null(input$table1_row_last_clicked)){
+    ts_variable_data %>%
+      filter(row_num == 1) %>%
+      select(id)}
+  else {ts_variable_data %>%
+      filter(row_num == input$table1_row_last_clicked) %>%
+      select(id)}
+  })
 ```
 
 Demographics

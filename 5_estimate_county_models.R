@@ -6,8 +6,8 @@ options(max.print = 99999)
 options(mc.cores = parallel::detectCores())
 rstan_options(auto_write = TRUE)
 
-downloads <- "/Users/josephripberger/Dropbox/Severe Weather and Society Dashboard/local files/downloads/" # define locally!!!
-outputs <- "/Users/josephripberger/Dropbox/Severe Weather and Society Dashboard/local files/outputs/" # define locally!!!
+downloads <- "/Users/josephripberger/Dropbox (Univ. of Oklahoma)/Severe Weather and Society Dashboard/local files/downloads/" # define locally!!!
+outputs <- "/Users/josephripberger/Dropbox (Univ. of Oklahoma)/Severe Weather and Society Dashboard/local files/outputs/" # define locally!!!
 
 # Survey Data -------------------------
 survey_data <- read.csv(paste0(outputs, "base_survey_data.csv")) %>% tibble() # use read.csv because of a parsing issue
@@ -26,9 +26,9 @@ survey_data$FIPS_RPL_THEME3 <- scale(survey_data$FIPS_RPL_THEME3)
 survey_data$FIPS_RPL_THEME4 <- scale(survey_data$FIPS_RPL_THEME4)
 
 # Composite Scale Models - Already Run, Output Saved -------------------------
-warmup <- 10
-iter <- 50
-chains <- 1
+warmup <- 500
+iter <- 1000
+chains <- 4
 
 county_recep_fit <- stan_lmer(recep ~ 1 + (1|MALE) + (1|AGE_GROUP) + (1|HISP) + (1|RACE_GROUP) + (1|CWA) + (1|FIPS) + (1|MALE:AGE_GROUP) +
                              FIPS_TORN + FIPS_RPL_THEME1 + FIPS_RPL_THEME2 + FIPS_RPL_THEME3 + FIPS_RPL_THEME4,

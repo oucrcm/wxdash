@@ -5,8 +5,8 @@ account: crcm
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 1198830
-bundleId: 3582068
+bundleId: 4051358
 url: https://crcm.shinyapps.io/WxDash/
-when: 1599007756.64052
+when: 1609617498.63615
 asMultiple: FALSE
 asStatic: FALSE

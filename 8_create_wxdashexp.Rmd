@@ -366,14 +366,14 @@ frequency_map_pal <- colorNumeric(palette = frequency_map_cols, domain = c(0, 10
 
 output$frequency_map <- renderLeaflet({
   col_num <- NA
-  col_num <- ifelse(input$event == "PER_HEA", 29, col_num)
-  col_num <- ifelse(input$event == "PER_DRO", 33, col_num)
-  col_num <- ifelse(input$event == "PER_COL", 26, col_num)
-  col_num <- ifelse(input$event == "PER_SNO", 31, col_num)
-  col_num <- ifelse(input$event == "PER_TOR", 32, col_num)
-  col_num <- ifelse(input$event == "PER_FLO", 28, col_num)
-  col_num <- ifelse(input$event == "PER_HUR", 30, col_num)
-  col_num <- ifelse(input$event == "PER_FIR", 27, col_num)
+  col_num <- ifelse(input$event == "PER_HEA", 30, col_num)
+  col_num <- ifelse(input$event == "PER_DRO", 34, col_num)
+  col_num <- ifelse(input$event == "PER_COL", 27, col_num)
+  col_num <- ifelse(input$event == "PER_SNO", 32, col_num)
+  col_num <- ifelse(input$event == "PER_TOR", 33, col_num)
+  col_num <- ifelse(input$event == "PER_FLO", 29, col_num)
+  col_num <- ifelse(input$event == "PER_HUR", 31, col_num)
+  col_num <- ifelse(input$event == "PER_FIR", 28, col_num)
   map$freqplot <- map@data[, col_num]
   p_popup <- with(map@data, paste0("NWS ", City, ", ", ST, " (", CWA,")", "<br>",
                                    "Percentile rank of the CWA: ", round(freqplot, 2)))

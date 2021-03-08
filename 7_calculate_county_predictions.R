@@ -149,24 +149,26 @@ all_predictions <- bind_rows(recep_predictions, subj_comp_predictions, obj_comp_
                              tornado_predictions, flood_predictions, hurricane_predictions, fire_predictions, ready_predictions) %>%
   pivot_wider(names_from = measure, values_from = person_z) # only person z-scores
 
+cnty_shp <- read_sf(paste0(downloads, "cb_2018_us_county_20m"), "cb_2018_us_county_20m") %>% rename("FIPS" = "GEOID")
 cwa_cnty_shp <- read_sf(paste0(downloads, "c_03mr20"), "c_03mr20")
 cwa_cnty_shp$CWA <- substr(cwa_cnty_shp$CWA, start = 1, stop = 3) # Only keep first CWA in counties that span multiple CWAs
 cwa_cnty_shp$CWA <- ifelse(cwa_cnty_shp$FIPS == "12087", "KEY", cwa_cnty_shp$CWA) # Fix KEY (assign FIPS 12087 to KEY alone, not KEY and MFL)
-# cwa_cnty_shp <- cwa_cnty_shp %>% distinct(FIPS, .keep_all = TRUE) # Remove duplicate FIPS codes (counties that span multiple CWAs)
-cwa_cnty_shp <- cwa_cnty_shp %>% filter(!CWA %in% c("PPG", "SJU", "GUM", "HFO", "AFC", "AFG", "AJK")) # No census data
-cwa_cnty_shp <- left_join(cwa_cnty_shp, all_predictions, by = "FIPS")
+cwa_cnty_shp <- cwa_cnty_shp %>% distinct(FIPS, .keep_all = TRUE) # Remove duplicate FIPS codes (counties that span multiple CWAs)
+cnty_shp <- left_join(cnty_shp, cwa_cnty_shp %>% select(CWA, FIPS) %>% st_drop_geometry(), by = "FIPS")
+cnty_shp <- cnty_shp %>% filter(!CWA %in% c("PPG", "SJU", "GUM", "HFO", "AFC", "AFG", "AJK")) # No census data
+cnty_shp <- left_join(cnty_shp, all_predictions, by = "FIPS") %>% drop_na(CWA)
 
 # Include Event Data ----------------------------------------
 cnty_storm_data <- read_csv(paste0(outputs, "base_county_storm_data.csv"))
-cwa_cnty_shp <- left_join(cwa_cnty_shp, cnty_storm_data, by = "FIPS")
+cnty_shp <- left_join(cnty_shp, cnty_storm_data, by = "FIPS")
 
 # Include SVI ----------------------------------------
 svi_data <- read_csv(paste0(downloads, "SVI2018_US_COUNTY.csv")) %>%
   select(FIPS, starts_with("EP_"), starts_with("RPL")) %>%
   na_if(-999)
 
-cwa_cnty_shp <- left_join(cwa_cnty_shp, svi_data, by = "FIPS")
+cnty_shp <- left_join(cnty_shp, svi_data, by = "FIPS")
 
 # Write Shapefile ----------------------------------------
-cwa_cnty_shp <- ms_simplify(cwa_cnty_shp, keep = 0.05)
-st_write(cwa_cnty_shp, paste0(outputs, "county_estimates"), "county_estimates", driver = "ESRI Shapefile", append = FALSE)
+cnty_shp <- ms_simplify(cnty_shp, keep = 0.05)
+st_write(cnty_shp, paste0(outputs, "county_estimates"), "county_estimates", driver = "ESRI Shapefile", append = FALSE)

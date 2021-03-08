@@ -51,7 +51,6 @@ fips_map@data <- fips_map@data %>%
 fips_map$CWA <- as.character(fips_map$CWA)
 
 survey_data <- read.csv("outputs/base_survey_data.csv")
-psych::describe(survey_data)
 
 # Define demographic groups
 survey_data$Gender <- factor(survey_data$MALE, labels = c("Female", "Male"))
@@ -168,7 +167,7 @@ output$fips_map <- renderLeaflet({
   map <- fips_map[fips_map$CWA == tract_data()[, 1], ]
   map$variableplot <- map@data[, input$variable]
   # variable_map_pal <- colorNumeric(palette = variable_map_cols, domain = c(min(map$variableplot), max(map$variableplot))) # MAKE COLORS RELATIVE WITHIN CWA
-  p_popup <- with(map@data, paste0(COUNTYNAME, ", County ", "(", CWA, ")", "<br>",
+  p_popup <- with(map@data, paste0(NAME, ", County ", "(", CWA, ")", "<br>",
                                    "Percentile rank of the average person in the County: ", round(variableplot, 2), "<br>",
                                    "Percentile rank of the County: ", round(pnorm(scale(variableplot)) * 100, 2)))
   l <- leaflet(map) %>%
@@ -1178,7 +1177,7 @@ dem_map_cols <- viridis(100)
 output$demo_map <- renderLeaflet({
   fips_map$demplot <- fips_map@data[, input$dem_variable]
   dem_map_pal <- colorNumeric(palette = dem_map_cols, domain = c(min(fips_map$demplot, na.rm = TRUE), max(fips_map$demplot, na.rm = TRUE)), na.color = NA)
-  p_popup <- with(fips_map@data, paste0(COUNTYNAME, ", County ", "(", CWA, ")", "<br>",
+  p_popup <- with(fips_map@data, paste0(NAME, ", County ", "(", CWA, ")", "<br>",
                                    "Estimate: ", round(demplot, 2)))
   l <- leaflet(fips_map) %>%
     setView(lng = -97, lat = 40, zoom = 4) %>%

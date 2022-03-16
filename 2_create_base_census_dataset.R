@@ -6,13 +6,14 @@ options(scipen = 999)
 options(max.print = 99999)
 "%ni%" <- Negate("%in%")
 
-downloads <- "/Users/josephripberger/Dropbox/Severe Weather and Society Dashboard/local files/downloads/" # define locally!!!
-outputs <- "/Users/josephripberger/Dropbox/Severe Weather and Society Dashboard/local files/outputs/" # define locally!!!
+downloads <- "/Users/josephripberger/Dropbox (Univ. of Oklahoma)//Severe Weather and Society Dashboard/local files/downloads/" # define locally!!!
+outputs <- "/Users/josephripberger/Dropbox (Univ. of Oklahoma)//Severe Weather and Society Dashboard/local files/outputs/" # define locally!!!
 
 # Census Data ------------------------- 
-# Codebook: https://www2.census.gov/programs-surveys/popest/technical-documentation/file-layouts/2010-2019/cc-est2019-alldata.pdf
-data <- fread("https://www2.census.gov/programs-surveys/popest/datasets/2010-2019/counties/asrh/cc-est2019-alldata.csv")
-data <- subset(data, YEAR == 12) # 7/1/2019 population estimate
+# Codebook: https://www2.census.gov/programs-surveys/popest/technical-documentation/file-layouts/2010-2020/cc-est2020-alldata.pdf
+data <- fread("https://www2.census.gov/programs-surveys/popest/datasets/2010-2020/counties/asrh/CC-EST2020-ALLDATA.csv")
+
+data <- subset(data, YEAR == 13) # 7/1/2020 population estimate
 data <- subset(data, AGEGRP %in% 4:18) # Age 15 to 19 years - Age 85 years or older
 data <- subset(data, STNAME %ni% c("Alaska", "Hawaii"))
 
@@ -21,6 +22,7 @@ data <- data[,c("STATE", "COUNTY", "AGEGRP",
                 "NHWA_MALE", "NHBA_MALE", "NH_MALE", "HWA_MALE", "HBA_MALE", "H_MALE",
                 "NHWA_FEMALE", "NHBA_FEMALE", "NH_FEMALE", "HWA_FEMALE", "HBA_FEMALE", "H_FEMALE"), ] %>%
   group_by(STATE, COUNTY, AGEGRP) %>% 
+  mutate_if(is.character, as.numeric) %>% 
   summarise_all(list(sum))
 
 data <- data.frame(
@@ -78,10 +80,10 @@ tot_data <- aggregate(DEMGRP_POP ~ FIPS, data_long, sum)
 names(tot_data) <- c("FIPS", "TOT_POP")
 data_long <- merge(data_long, tot_data, by = "FIPS", all.x = TRUE)
 
-org_data <- fread("https://www2.census.gov/programs-surveys/popest/datasets/2010-2019/counties/asrh/cc-est2019-alldata.csv")
+org_data <- fread("https://www2.census.gov/programs-surveys/popest/datasets/2010-2020/counties/asrh/CC-EST2020-ALLDATA.csv")
 org_data$FIPS <- paste0(formatC(org_data$STATE, width = 2, format = "d", flag = "0"), 
                     formatC(org_data$COUNTY, width = 3, format = "d", flag = "0"))
-org_data <- subset(org_data, AGEGRP == 0 & YEAR == 12 & STNAME %ni% c("Alaska", "Hawaii"))
+org_data <- subset(org_data, AGEGRP == 0 & YEAR == 13 & STNAME %ni% c("Alaska", "Hawaii"))
 data_long <- merge(data_long, with(org_data, data.frame(FIPS, STATE, COUNTY, STNAME, CTYNAME)), by = "FIPS", all.x = TRUE)
 data_long <- data_long[,c("STATE","COUNTY","STNAME","CTYNAME","FIPS","MALE","AGE_GROUP","HISP","RACE_GROUP","DEMGRP_POP","TOT_POP")]
 data_long$DEMGRP_PROP <- data_long$DEMGRP_POP / data_long$TOT_POP

@@ -2,10 +2,11 @@ library(ltm)
 library(readxl)
 library(sf)
 library(tidyverse)
+library(data.table)
 options(scipen = 9999)
 
-downloads <- "/Users/josephripberger/Dropbox/Severe Weather and Society Dashboard/local files/downloads/" # define locally!!!
-outputs <- "/Users/josephripberger/Dropbox/Severe Weather and Society Dashboard/local files/outputs/" # define locally!!!
+downloads <- "/Users/josephripberger/Dropbox (Univ. of Oklahoma)/Severe Weather and Society Dashboard/local files/downloads/" # define locally!!!
+outputs <- "/Users/josephripberger/Dropbox (Univ. of Oklahoma)/Severe Weather and Society Dashboard/local files/outputs/" # define locally!!!
 
 # Import Survey Data -----------------------------
 WX17 <- read_csv(paste0(downloads, "WX17_data_wtd.csv")) # Survey Data
@@ -42,12 +43,21 @@ WX20$bigbucks <- as.numeric(WX20$bigbucks)
 WX20$choir <- as.numeric(WX20$choir)
 WX20$mushroom <- as.numeric(WX20$mushroom)
 
+WX21 <- read_csv(paste0(downloads, "WX21_data_wtd.csv")) # Survey Data
+# WX21$zip <- as.numeric(WX21$zip)
+# WX21$children <- as.numeric(WX21$children)
+WX21$bigbucks <- as.numeric(WX21$bigbucks)
+WX21$choir <- as.numeric(WX21$choir)
+WX21$mushroom <- as.numeric(WX21$mushroom)
+
 WX17$survey_year <- 2017 
 WX18$survey_year <- 2018
 WX19$survey_year <- 2019
 WX20$survey_year <- 2020
+WX21$survey_year <- 2021
 
-survey_data <- bind_rows(WX17, WX18, WX19, WX20)
+# survey_data <- bind_rows(WX17, WX18, WX19, WX20, WX21)
+survey_data <- rbindlist(list(WX17, WX18, WX19, WX20, WX21), fill = TRUE)
 
 # Identify respondent FIPS, CWA, and Region ------------------
 zip_to_county <- read_excel(paste0(downloads, "ZIP_COUNTY_032020.xlsx"), 
@@ -59,7 +69,7 @@ zip_to_county <- zip_to_county %>%
 
 survey_data$zip <- str_pad(survey_data$zip, 5, side = "left", pad = 0)
 survey_data <- left_join(survey_data, zip_to_county, by = c("zip" = "ZIP")) 
-survey_data <- drop_na(survey_data, FIPS) # drops 49 respondents (invalid zipcodes)
+survey_data <- drop_na(survey_data, FIPS) # drops 59 respondents (invalid zipcodes)
 
 cwa_cnty_shp <- read_sf(paste0(downloads, "c_03mr20"), "c_03mr20") %>% as_tibble() %>% select(CWA, FIPS)
 cwa_cnty_shp$CWA <- substr(cwa_cnty_shp$CWA, start = 1, stop = 3) # Only keep first CWA in counties that span multiple CWAs
@@ -186,11 +196,11 @@ myth_scores <- tibble(p_id = filter(survey_data, survey_year == 2017)$p_id, myth
 survey_data <- left_join(survey_data, myth_scores, by = "p_id")
 
 ready_comp_data <- survey_data %>%
-  filter(survey_year %in% c(2019, 2020)) %>%
+  filter(survey_year %in% c(2019, 2020, 2021)) %>%
   select(c(rq_4:rq_8)) %>% 
   mutate_all(funs(ifelse(. == 1, 1, 0)))
 ready_comp_fit <- ltm(ready_comp_data ~ z1)
-ready_comp_scores <- tibble(p_id = filter(survey_data, survey_year %in% c(2019, 2020))$p_id, ready = ltm::factor.scores(ready_comp_fit, resp.patterns = ready_comp_data)$score.dat$z1)
+ready_comp_scores <- tibble(p_id = filter(survey_data, survey_year %in% c(2019, 2020, 2021))$p_id, ready = ltm::factor.scores(ready_comp_fit, resp.patterns = ready_comp_data)$score.dat$z1)
 survey_data <- left_join(survey_data, ready_comp_scores, by = "p_id")
 
 # Write Data -----------------------------

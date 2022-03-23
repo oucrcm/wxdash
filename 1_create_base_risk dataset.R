@@ -2,8 +2,8 @@ library(data.table)
 library(tidyverse)
 library(sf)
 
-downloads <- "/Users/josephripberger/Dropbox/Severe Weather and Society Dashboard/local files/downloads/" # define locally!!!
-outputs <- "/Users/josephripberger/Dropbox/Severe Weather and Society Dashboard/local files/outputs/" # define locally!!!
+downloads <- "/Users/josephripberger/Dropbox (Univ. of Oklahoma)//Severe Weather and Society Dashboard/local files/downloads/" # define locally!!!
+outputs <- "/Users/josephripberger/Dropbox (Univ. of Oklahoma)//Severe Weather and Society Dashboard/local files/outputs/" # define locally!!!
 
 # FEMA NRI Data ------------------------- 
 # data: https://hazards.fema.gov/nri/data-resources

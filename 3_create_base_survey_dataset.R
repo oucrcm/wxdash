@@ -50,11 +50,14 @@ WX21$bigbucks <- as.numeric(WX21$bigbucks)
 WX21$choir <- as.numeric(WX21$choir)
 WX21$mushroom <- as.numeric(WX21$mushroom)
 
+# WX21SP <- read_csv(paste0(downloads, "WX21_spanish_data_unwtd.csv")) # Survey Data
+
 WX17$survey_year <- 2017 
 WX18$survey_year <- 2018
 WX19$survey_year <- 2019
 WX20$survey_year <- 2020
 WX21$survey_year <- 2021
+# WX21SP$survey_year <- 2021
 
 # survey_data <- bind_rows(WX17, WX18, WX19, WX20, WX21)
 survey_data <- rbindlist(list(WX17, WX18, WX19, WX20, WX21), fill = TRUE)

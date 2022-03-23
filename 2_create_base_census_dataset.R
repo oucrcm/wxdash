@@ -6,8 +6,8 @@ options(scipen = 999)
 options(max.print = 99999)
 "%ni%" <- Negate("%in%")
 
-downloads <- "/Users/josephripberger/Dropbox (Univ. of Oklahoma)//Severe Weather and Society Dashboard/local files/downloads/" # define locally!!!
-outputs <- "/Users/josephripberger/Dropbox (Univ. of Oklahoma)//Severe Weather and Society Dashboard/local files/outputs/" # define locally!!!
+downloads <- "/Users/josephripberger/Dropbox (Univ. of Oklahoma)/Severe Weather and Society Dashboard/local files/downloads/" # define locally!!!
+outputs <- "/Users/josephripberger/Dropbox (Univ. of Oklahoma)/Severe Weather and Society Dashboard/local files/outputs/" # define locally!!!
 
 # Census Data ------------------------- 
 # Codebook: https://www2.census.gov/programs-surveys/popest/technical-documentation/file-layouts/2010-2020/cc-est2020-alldata.pdf

@@ -29,10 +29,13 @@ cnty_fema_data <- cwa_cnty_shp %>%
          COLD = CWAV_AFREQ, 
          DROUGHT = DRGT_AFREQ, 
          HAIL = HAIL_AFREQ, 
+         LIGHT = LTNG_AFREQ, 
+         WIND = SWND_AFREQ, 
          HEAT = HWAV_AFREQ, 
          HURR = HRCN_AFREQ,
          ICE = ISTM_AFREQ, 
-         FLOOD = RFLD_AFREQ, 
+         COST_FLOOD = CFLD_AFREQ,
+         RVR_FLOOD = RFLD_AFREQ, 
          TORN = TRND_AFREQ, 
          FIRE = WFIR_AFREQ, 
          SNOW = WNTW_AFREQ)
@@ -50,9 +53,24 @@ cwa_data <- cwa_fema_data %>%
   select(CWA, CWA_SOVI:CWA_SNOW) %>% 
   mutate_at(vars(-CWA), list(~scale(.) %>% as.vector))
 
-county_data <- cnty_fema_data %>% 
-  select(FIPS, FIPS_SOVI:FIPS_SNOW) %>% 
-  mutate_at(vars(-c(CWA, FIPS)), list(~scale(.) %>% as.vector))
+county_data <- cnty_fema_data %>%
+  ungroup() %>%
+  select(FIPS, FIPS_SOVI:FIPS_SNOW) %>%
+  mutate_at(vars(-c(FIPS)), list(~scale(.) %>% as.vector)) %>%
+  mutate(FIPS_TORN = ifelse(FIPS_TORN > 2, 2, FIPS_TORN))
+
+# county_data %>%
+#   select(FIPS_SOVI:FIPS_SNOW) %>%
+#   pivot_longer(FIPS_SOVI:FIPS_SNOW) %>%
+#   ggplot(., aes(x = value)) +
+#   geom_density() +
+#   facet_wrap(~name, scales = "free")
+
+# cwa_cnty_shp <- read_sf(paste0(downloads, "c_03mr20"), "c_03mr20")
+# cwa_cnty_shp <- cwa_cnty_shp %>% filter(!CWA %in% c("PPG", "SJU", "GUM", "HFO", "AFC", "AFG", "AJK")) # No census data
+# cwa_cnty_shp <- cwa_cnty_shp %>% left_join(., county_data, by = "FIPS")
+# cwa_cnty_shp <- rmapshaper::ms_simplify(cwa_cnty_shp)
+# ggplot() + geom_sf(data = cwa_cnty_shp, aes(fill = FIPS_WIND), size = 0.1) + scale_fill_viridis_c()
 
 # Output Data -------------------------
 write_csv(cwa_data, paste0(outputs, "base_cwa_risk_data.csv"))

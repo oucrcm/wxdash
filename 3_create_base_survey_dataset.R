@@ -50,16 +50,24 @@ WX21$bigbucks <- as.numeric(WX21$bigbucks)
 WX21$choir <- as.numeric(WX21$choir)
 WX21$mushroom <- as.numeric(WX21$mushroom)
 
-# WX21SP <- read_csv(paste0(downloads, "WX21_spanish_data_unwtd.csv")) # Survey Data
+WX21SP <- read_csv(paste0(downloads, "WX21_spanish_data_unwtd.csv")) # Survey Data
+WX21SP$rand_aft <- as.character(WX21SP$rand_aft)
+WX21SP$rand_eve <- as.character(WX21SP$rand_eve)
 
 WX17$survey_year <- 2017 
 WX18$survey_year <- 2018
 WX19$survey_year <- 2019
 WX20$survey_year <- 2020
 WX21$survey_year <- 2021
-# WX21SP$survey_year <- 2021
+WX21SP$survey_year <- 2021
 
-# survey_data <- bind_rows(WX17, WX18, WX19, WX20, WX21)
+WX17$lang <- "English" 
+WX18$lang <- "English"
+WX19$lang <- "English"
+WX20$lang <- "English"
+WX21$lang <- "English"
+WX21SP$lang <- "Spanish" ## MISSING FIPS!??
+
 survey_data <- rbindlist(list(WX17, WX18, WX19, WX20, WX21), fill = TRUE)
 
 # Identify respondent FIPS, CWA, and Region ------------------
@@ -121,6 +129,16 @@ county_storm_data <- county_storm_data %>% rename_at(vars(COLD:DROUGHT), ~paste0
 
 survey_data <- left_join(survey_data, cwa_storm_data, by = "CWA")
 survey_data <- left_join(survey_data, county_storm_data, by = "FIPS")
+
+# Risk Data (from FEMA) -------------------------
+cwa_risk_data <- read_csv(paste0(outputs, "base_cwa_risk_data.csv"))
+county_risk_data <- read_csv(paste0(outputs, "base_county_risk_data.csv"))
+
+cwa_risk_data <- cwa_risk_data %>% rename_at(vars(CWA_SOVI:CWA_SNOW), ~paste0("FEMA_", .))
+county_risk_data <- county_risk_data %>% rename_at(vars(FIPS_SOVI:FIPS_SNOW), ~paste0("FIPS_", .))
+
+survey_data <- left_join(survey_data, cwa_risk_data, by = "CWA")
+survey_data <- left_join(survey_data, county_risk_data, by = "FIPS")
 
 # Census Data -------------------------
 cwa_census_data <- read_csv(paste0(outputs, "base_cwa_census_data.csv"))

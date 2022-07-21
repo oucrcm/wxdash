@@ -9,66 +9,42 @@ downloads <- "/Users/josephripberger/Dropbox (Univ. of Oklahoma)/Severe Weather 
 outputs <- "/Users/josephripberger/Dropbox (Univ. of Oklahoma)/Severe Weather and Society Dashboard/local files/outputs/" # define locally!!!
 
 # Import Survey Data -----------------------------
-WX17 <- read_csv(paste0(downloads, "WX17_data_wtd.csv")) # Survey Data
-WX17$p_id <- as.character(WX17$p_id)
-WX17$zip <- as.numeric(WX17$zip)
-WX17$long_months <- as.character(WX17$long_months)
-WX17$adults <- as.character(WX17$adults)
-WX17$warn_prob_area <- as.numeric(WX17$warn_prob_area)
-WX17$warn_cons <- as.character(WX17$warn_cons)
-WX17$watch_cons <- as.character(WX17$watch_cons)
-WX17$nws_region <- NA
-WX17$nws_region <- ifelse(WX17$region == 1, "Eastern Region", WX17$nws_region)
-WX17$nws_region <- ifelse(WX17$region == 2, "Southern Region", WX17$nws_region)
-WX17$nws_region <- ifelse(WX17$region == 3, "Central Region", WX17$nws_region)
-WX17$nws_region <- ifelse(WX17$region == 4, "Western Region", WX17$nws_region)
+WX17 <- read_csv(paste0(downloads, "WX17_data_wtd.csv"))
 WX17 <- WX17 %>% 
+  mutate(p_id = as.character(p_id),
+         zip = as.numeric(zip)) %>% 
+  mutate(nws_region = case_when(
+    region == 1 ~ "Eastern Region",
+    region == 2 ~ "Southern Region",
+    region == 3 ~ "Central Region",
+    region == 4 ~ "Western Region"))
   select(-c(rec_all:rec_time)) %>%  # scale changes form 1-7 to 1-5 in 2018/2019
   select(-c(resp_ignore:resp_unsure)) # scale changes form 1-7 to 1-5 in 2018/2019
-
-WX18 <- read_csv(paste0(downloads, "WX18_data_wtd.csv")) # Survey Data
-WX18$warn_prob_area <- as.numeric(WX18$warn_prob_area)
-
-WX19 <- read_csv(paste0(downloads, "WX19_data_wtd.csv")) # Survey Data
-WX19$adults <- as.character(WX19$adults)
-WX19$bigbucks <- as.numeric(WX19$bigbucks)
-WX17$choir <- as.numeric(WX17$choir)
-WX17$fiveside <- as.numeric(WX17$fiveside)
-WX17$mushroom <- as.numeric(WX17$mushroom)
-
-WX20 <- read_csv(paste0(downloads, "WX20_data_wtd.csv")) # Survey Data
+WX18 <- read_csv(paste0(downloads, "WX18_data_wtd.csv"))
+WX19 <- read_csv(paste0(downloads, "WX19_data_wtd.csv"))
+WX20 <- read_csv(paste0(downloads, "WX20_data_wtd.csv"))
 WX20$zip <- as.numeric(WX20$zip)
-WX20$children <- as.numeric(WX20$children)
-WX20$bigbucks <- as.numeric(WX20$bigbucks)
-WX20$choir <- as.numeric(WX20$choir)
-WX20$mushroom <- as.numeric(WX20$mushroom)
+WX21 <- read_csv(paste0(downloads, "WX21_data_wtd.csv"))
+WX21SP <- read_csv(paste0(downloads, "WX21_spanish_data_wtd.csv"))
+TC20 <- read_csv(paste0(downloads, "TC21_data_wtd.csv"))
+TC21 <- read_csv(paste0(downloads, "TC21_data_wtd.csv"))
+TC22 <- read_csv(paste0(downloads, "TC22_data_wtd.csv"))
 
-WX21 <- read_csv(paste0(downloads, "WX21_data_wtd.csv")) # Survey Data
-# WX21$zip <- as.numeric(WX21$zip)
-# WX21$children <- as.numeric(WX21$children)
-WX21$bigbucks <- as.numeric(WX21$bigbucks)
-WX21$choir <- as.numeric(WX21$choir)
-WX21$mushroom <- as.numeric(WX21$mushroom)
+# WX17$survey_year <- 2017 
+# WX18$survey_year <- 2018
+# WX19$survey_year <- 2019
+# WX20$survey_year <- 2020
+# WX21$survey_year <- 2021
+# WX21SP$survey_year <- 2021
+# 
+# WX17$lang <- "English" 
+# WX18$lang <- "English"
+# WX19$lang <- "English"
+# WX20$lang <- "English"
+# WX21$lang <- "English"
+# WX21SP$lang <- "Spanish" ## MISSING FIPS!??
 
-WX21SP <- read_csv(paste0(downloads, "WX21_spanish_data_unwtd.csv")) # Survey Data
-WX21SP$rand_aft <- as.character(WX21SP$rand_aft)
-WX21SP$rand_eve <- as.character(WX21SP$rand_eve)
-
-WX17$survey_year <- 2017 
-WX18$survey_year <- 2018
-WX19$survey_year <- 2019
-WX20$survey_year <- 2020
-WX21$survey_year <- 2021
-WX21SP$survey_year <- 2021
-
-WX17$lang <- "English" 
-WX18$lang <- "English"
-WX19$lang <- "English"
-WX20$lang <- "English"
-WX21$lang <- "English"
-WX21SP$lang <- "Spanish" ## MISSING FIPS!??
-
-survey_data <- rbindlist(list(WX17, WX18, WX19, WX20, WX21), fill = TRUE)
+survey_data <- rbindlist(list(WX17, WX18, WX19, WX20, WX21, TC20, TC21, TC22), fill = TRUE)
 
 # Identify respondent FIPS, CWA, and Region ------------------
 zip_to_county <- read_excel(paste0(downloads, "ZIP_COUNTY_032020.xlsx"), 

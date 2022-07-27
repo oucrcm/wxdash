@@ -9,42 +9,55 @@ downloads <- "/Users/josephripberger/Dropbox (Univ. of Oklahoma)/Severe Weather 
 outputs <- "/Users/josephripberger/Dropbox (Univ. of Oklahoma)/Severe Weather and Society Dashboard/local files/outputs/" # define locally!!!
 
 # Import Survey Data -----------------------------
-WX17 <- read_csv(paste0(downloads, "WX17_data_wtd.csv"))
-WX17 <- WX17 %>% 
-  mutate(p_id = as.character(p_id),
-         zip = as.numeric(zip)) %>% 
-  mutate(nws_region = case_when(
-    region == 1 ~ "Eastern Region",
-    region == 2 ~ "Southern Region",
-    region == 3 ~ "Central Region",
-    region == 4 ~ "Western Region"))
-  select(-c(rec_all:rec_time)) %>%  # scale changes form 1-7 to 1-5 in 2018/2019
-  select(-c(resp_ignore:resp_unsure)) # scale changes form 1-7 to 1-5 in 2018/2019
-WX18 <- read_csv(paste0(downloads, "WX18_data_wtd.csv"))
-WX19 <- read_csv(paste0(downloads, "WX19_data_wtd.csv"))
-WX20 <- read_csv(paste0(downloads, "WX20_data_wtd.csv"))
-WX20$zip <- as.numeric(WX20$zip)
-WX21 <- read_csv(paste0(downloads, "WX21_data_wtd.csv"))
-WX21SP <- read_csv(paste0(downloads, "WX21_spanish_data_wtd.csv"))
-TC20 <- read_csv(paste0(downloads, "TC21_data_wtd.csv"))
-TC21 <- read_csv(paste0(downloads, "TC21_data_wtd.csv"))
-TC22 <- read_csv(paste0(downloads, "TC22_data_wtd.csv"))
-
-# WX17$survey_year <- 2017 
-# WX18$survey_year <- 2018
-# WX19$survey_year <- 2019
-# WX20$survey_year <- 2020
-# WX21$survey_year <- 2021
-# WX21SP$survey_year <- 2021
-# 
-# WX17$lang <- "English" 
-# WX18$lang <- "English"
-# WX19$lang <- "English"
-# WX20$lang <- "English"
-# WX21$lang <- "English"
-# WX21SP$lang <- "Spanish" ## MISSING FIPS!??
+WX17 <- read_csv(paste0(downloads, "WX17_data_wtd.csv")) %>% 
+  mutate(survey_year = "2017", 
+         survey_hazard = "SV",
+         survey_language = "English",
+         p_id = as.character(p_id),
+         zip = as.numeric(zip),
+         nws_region = case_when(
+           region == 1 ~ "Eastern Region",
+           region == 2 ~ "Southern Region",
+           region == 3 ~ "Central Region",
+           region == 4 ~ "Western Region")) %>% 
+  select(-c(rec_all:rec_time)) %>%  # remove because scale changes form 1-7 to 1-5 in 2018/2019
+  select(-c(resp_ignore:resp_unsure)) # remove because scale changes form 1-7 to 1-5 in 2018/2019
+WX18 <- read_csv(paste0(downloads, "WX18_data_wtd.csv")) %>% 
+  mutate(survey_year = "2018", 
+         survey_hazard = "SV",
+         survey_language = "English")
+WX19 <- read_csv(paste0(downloads, "WX19_data_wtd.csv")) %>% 
+  mutate(survey_year = "2019", 
+         survey_hazard = "SV", 
+         survey_language = "English")
+WX20 <- read_csv(paste0(downloads, "WX20_data_wtd.csv")) %>% 
+  mutate(survey_year = "2020", 
+         survey_hazard = "SV",
+         survey_language = "English", 
+         zip = as.numeric(zip))
+WX21 <- read_csv(paste0(downloads, "WX21_data_wtd.csv")) %>% 
+  mutate(survey_year = "2021", 
+         survey_hazard = "SV",
+         survey_language = "English")
+WX21SP <- read_csv(paste0(downloads, "WX21_spanish_data_wtd.csv")) %>% 
+  mutate(survey_year = "2021", 
+         survey_hazard = "SV",
+         survey_language = "Spanish")
+TC20 <- read_csv(paste0(downloads, "TC20_data_wtd.csv")) %>% 
+  mutate(survey_year = "2020",
+         survey_hazard = "TC",
+         survey_language = "English")
+TC21 <- read_csv(paste0(downloads, "TC21_data_wtd.csv")) %>% 
+  mutate(survey_year = "2021",
+         survey_hazard = "TC",
+         survey_language = "English")
+TC22 <- read_csv(paste0(downloads, "TC22_data_wtd.csv")) %>% 
+  mutate(survey_year = "2022",
+         survey_hazard = "TC",
+         survey_language = "English")
 
 survey_data <- rbindlist(list(WX17, WX18, WX19, WX20, WX21, TC20, TC21, TC22), fill = TRUE)
+survey_data %>% count(survey_hazard, survey_year)
 
 # Identify respondent FIPS, CWA, and Region ------------------
 zip_to_county <- read_excel(paste0(downloads, "ZIP_COUNTY_032020.xlsx"), 
@@ -56,7 +69,7 @@ zip_to_county <- zip_to_county %>%
 
 survey_data$zip <- str_pad(survey_data$zip, 5, side = "left", pad = 0)
 survey_data <- left_join(survey_data, zip_to_county, by = c("zip" = "ZIP")) 
-survey_data <- drop_na(survey_data, FIPS) # drops 59 respondents (invalid zipcodes)
+survey_data <- drop_na(survey_data, FIPS) # drops 70 respondents (invalid zipcodes)
 
 cwa_cnty_shp <- read_sf(paste0(downloads, "c_03mr20"), "c_03mr20") %>% as_tibble() %>% select(CWA, FIPS)
 cwa_cnty_shp$CWA <- substr(cwa_cnty_shp$CWA, start = 1, stop = 3) # Only keep first CWA in counties that span multiple CWAs
@@ -77,24 +90,19 @@ survey_data$HISP <-factor(survey_data$hisp)
 survey_data$RACE_GROUP <- factor(car::recode(survey_data$race, "1 = 1; 2 = 2; else = 3"))
 
 # Add Variables -----------------------------
-cointoss_correct <- car::recode(as.numeric(as.character(survey_data$cointoss)),"500 = 1; NA = NA; else = 0")
-bigbucks_correct <- car::recode(as.numeric(as.character(survey_data$bigbucks)),"10 = 1; NA = NA; else = 0")
-acme_pub_correct <- car::recode(as.numeric(as.character(survey_data$acme_pub)),"0.1 = 1; NA = NA; else = 0")
-choir_correct <- car::recode(as.numeric(as.character(survey_data$choir)),"25 = 1;NA = NA; else = 0")
-fiveside_correct <- car::recode(as.numeric(as.character(survey_data$fiveside)),"30 = 1; NA = NA; else = 0")
-sixside_correct <- car::recode(as.numeric(as.character(survey_data$sixside)),"20 = 1; NA = NA; else = 0")
-mushroom_correct <- car::recode(as.numeric(as.character(survey_data$mushroom)),"50 = 1; NA = NA; else = 0")
-part1_score <- cointoss_correct + bigbucks_correct + acme_pub_correct
-part2_score <- NA
-advance <- ifelse(part1_score < 2, 0, 1)
-part2_score <- ifelse(advance == 0,0,part2_score)
-part2_score <- ifelse(advance == 1 & choir_correct == 0 & fiveside_correct == 0,1,part2_score)
-part2_score <- ifelse(advance == 1 & choir_correct == 0 & fiveside_correct == 1,2,part2_score)
-part2_score <- ifelse(advance == 1 & choir_correct == 1 & sixside_correct == 0 & mushroom_correct == 0, 3, part2_score)
-part2_score <- ifelse(advance == 1 & choir_correct == 1 & sixside_correct == 0 & mushroom_correct == 1, 4, part2_score)
-part2_score <- ifelse(advance == 1 & choir_correct == 1 & sixside_correct == 1, 4, part2_score)
-numeracy <- part1_score + part2_score
-survey_data$Numeracy <- car::recode(numeracy, "0:2 = 'Low'; 2:4 = 'Moderate'; 5:7 = 'High'")
+# survey_data <- survey_data %>%
+#   mutate(cointoss_correct = ifelse(as.numeric(as.character(cointoss)) == 500, 1, 0),
+#          bigbucks_correct = ifelse(as.numeric(as.character(bigbucks)) == 10, 1, 0),
+#          acme_pub_correct = ifelse(as.numeric(as.character(acme_pub)) == 0.1, 1, 0),
+#          choir_correct = ifelse(as.numeric(as.character(choir)) == 25, 1, 0),
+#          fiveside_correct = ifelse(as.numeric(as.character(fiveside)) == 30, 2, 0),
+#          sixside_correct = ifelse(as.numeric(as.character(sixside)) == 20, 3, 0),
+#          mushroom_correct = ifelse(as.numeric(as.character(mushroom)) == 50, 2, 0),
+#          numeracy_scale = rowSums(across(cointoss_correct:mushroom_correct), na.rm = TRUE)) %>%
+#   mutate(Numeracy = case_when(
+#     numeracy_scale %in% 0:2 ~ "(1) Low",
+#     numeracy_scale %in% 3:4 ~ "(2) Moderate",
+#     numeracy_scale %in% 5:7 ~ "(3) High")) # TODO: fix this!!
 
 # Event Data -------------------------
 cwa_storm_data <- read_csv(paste0(outputs, "base_cwa_storm_data.csv"))
@@ -132,19 +140,38 @@ survey_data <- left_join(survey_data, cwa_svi_data, by = "CWA")
 survey_data <- left_join(survey_data, county_svi_data, by = "FIPS")
 
 # Measures for Models -------------------------
-recep_data <- survey_data %>%
-  filter(!survey_year == 2017) %>%
-  select(rec_all, rec_most, rec_soon, rec_sleep, rec_driving, rec_work, rec_store, rec_small_group, rec_large_group, rec_morn, rec_aft, rec_eve)
-recep_fit <- grm(recep_data)
-recep_scores <- tibble(p_id = filter(survey_data, !survey_year == 2017)$p_id, recep = ltm::factor.scores(recep_fit, resp.patterns = recep_data)$score.dat$z1)
-survey_data <- left_join(survey_data, recep_scores, by = "p_id")
+to_recep_data <- survey_data %>%
+  filter(survey_hazard == "SV" & !survey_year == 2017) %>%
+  select(p_id, rec_all, rec_most, rec_soon, rec_sleep, rec_driving, rec_work, rec_store, rec_small_group, rec_large_group, rec_morn, rec_aft, rec_eve)
+to_recep_fit <- grm(to_recep_data %>% select(-p_id))
+to_recep_scores <- tibble(to_recep_data %>% select(p_id), 
+                          to_recep = ltm::factor.scores(to_recep_fit, resp.patterns = to_recep_data %>% select(-p_id))$score.dat$z1)
+survey_data <- left_join(survey_data, to_recep_scores, by = "p_id")
 
-subj_comp_data <- survey_data %>%
-  filter(!survey_year == 2017) %>%
-  select(alert_und, tor_watchwarn_und, tor_map_und, tor_radar_und, svr_watchwarn_und, und_morn, und_aft, und_eve)
-subj_comp_fit <- grm(subj_comp_data)
-subj_comp_scores <- tibble(p_id = filter(survey_data, !survey_year == 2017)$p_id, subj_comp = ltm::factor.scores(subj_comp_fit, resp.patterns = subj_comp_data)$score.dat$z1)
-survey_data <- left_join(survey_data, subj_comp_scores, by = "p_id")
+hu_recep_data <- survey_data %>%
+  filter(survey_hazard == "TC") %>%
+  select(p_id, rec_most, rec_time)
+hu_recep_fit <- grm(hu_recep_data %>% select(-p_id))
+hu_recep_scores <- tibble(hu_recep_data %>% select(p_id),
+                          hu_recep = ltm::factor.scores(hu_recep_fit, resp.patterns = hu_recep_data %>% select(-p_id))$score.dat$z1)
+survey_data <- left_join(survey_data, hu_recep_scores, by = "p_id")
+
+to_subj_comp_data <- survey_data %>%
+  filter(survey_hazard == "SV" & !survey_year == 2017) %>%
+  select(p_id, alert_und, tor_watchwarn_und, tor_map_und, tor_radar_und, svr_watchwarn_und, und_morn, und_aft, und_eve)
+to_subj_comp_fit <- grm(to_subj_comp_data)
+to_subj_comp_scores <- tibble(to_subj_comp_data  %>% select(p_id), 
+                              to_subj_comp = ltm::factor.scores(to_subj_comp_fit, resp.patterns = to_subj_comp_data %>% select(-p_id))$score.dat$z1)
+to_survey_data <- left_join(survey_data, to_subj_comp, by = "p_id")
+
+
+
+
+
+
+
+
+
 
 survey_data$watch_warn_group <- ifelse(is.na(survey_data$torwatch) == FALSE, "watch", "warn")
 survey_data$watch_warn_correct <- NA

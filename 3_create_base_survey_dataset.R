@@ -11,7 +11,7 @@ outputs <- "/Users/josephripberger/Dropbox (Univ. of Oklahoma)/Severe Weather an
 # Import Survey Data -----------------------------
 WX17 <- read_csv(paste0(downloads, "WX17_data_wtd.csv")) %>% 
   mutate(survey_year = "2017", 
-         survey_hazard = "SV",
+         survey_hazard = "WX",
          survey_language = "English",
          p_id = as.character(p_id),
          zip = as.numeric(zip),
@@ -24,24 +24,24 @@ WX17 <- read_csv(paste0(downloads, "WX17_data_wtd.csv")) %>%
   select(-c(resp_ignore:resp_unsure)) # remove because scale changes form 1-7 to 1-5 in 2018/2019
 WX18 <- read_csv(paste0(downloads, "WX18_data_wtd.csv")) %>% 
   mutate(survey_year = "2018", 
-         survey_hazard = "SV",
+         survey_hazard = "WX",
          survey_language = "English")
 WX19 <- read_csv(paste0(downloads, "WX19_data_wtd.csv")) %>% 
   mutate(survey_year = "2019", 
-         survey_hazard = "SV", 
+         survey_hazard = "WX", 
          survey_language = "English")
 WX20 <- read_csv(paste0(downloads, "WX20_data_wtd.csv")) %>% 
   mutate(survey_year = "2020", 
-         survey_hazard = "SV",
+         survey_hazard = "WX",
          survey_language = "English", 
          zip = as.numeric(zip))
 WX21 <- read_csv(paste0(downloads, "WX21_data_wtd.csv")) %>% 
   mutate(survey_year = "2021", 
-         survey_hazard = "SV",
+         survey_hazard = "WX",
          survey_language = "English")
 WX21SP <- read_csv(paste0(downloads, "WX21_spanish_data_wtd.csv")) %>% 
   mutate(survey_year = "2021", 
-         survey_hazard = "SV",
+         survey_hazard = "WX",
          survey_language = "Spanish")
 TC20 <- read_csv(paste0(downloads, "TC20_data_wtd.csv")) %>% 
   mutate(survey_year = "2020",
@@ -141,7 +141,7 @@ survey_data <- left_join(survey_data, county_svi_data, by = "FIPS")
 
 # Measures for Models -------------------------
 to_recep_data <- survey_data %>%
-  filter(survey_hazard == "SV" & !survey_year == 2017) %>%
+  filter(survey_hazard == "WX" & !survey_year == 2017) %>%
   select(p_id, rec_all, rec_most, rec_soon, rec_sleep, rec_driving, rec_work, rec_store, rec_small_group, rec_large_group, rec_morn, rec_aft, rec_eve)
 to_recep_fit <- grm(to_recep_data %>% select(-p_id))
 to_recep_scores <- tibble(to_recep_data %>% select(p_id), 
@@ -157,75 +157,117 @@ hu_recep_scores <- tibble(hu_recep_data %>% select(p_id),
 survey_data <- left_join(survey_data, hu_recep_scores, by = "p_id")
 
 to_subj_comp_data <- survey_data %>%
-  filter(survey_hazard == "SV" & !survey_year == 2017) %>%
-  select(p_id, alert_und, tor_watchwarn_und, tor_map_und, tor_radar_und, svr_watchwarn_und, und_morn, und_aft, und_eve)
-to_subj_comp_fit <- grm(to_subj_comp_data)
+  filter(survey_hazard == "WX" & !survey_year == 2017) %>%
+  select(p_id, alert_und, tor_watchwarn_und, tor_map_und, tor_radar_und, svr_watchwarn_und)
+to_subj_comp_fit <- grm(to_subj_comp_data %>% select(-p_id))
 to_subj_comp_scores <- tibble(to_subj_comp_data  %>% select(p_id), 
                               to_subj_comp = ltm::factor.scores(to_subj_comp_fit, resp.patterns = to_subj_comp_data %>% select(-p_id))$score.dat$z1)
-to_survey_data <- left_join(survey_data, to_subj_comp, by = "p_id")
+survey_data <- left_join(survey_data, to_subj_comp_scores, by = "p_id")
+
+hu_subj_comp_data <- survey_data %>%
+  filter(survey_hazard == "TC") %>%
+  select(p_id, alert_und, huralerts, hur_map_und, tor_watchwarn_und, flood_watchwarn_und, flood_srg_und)
+hu_subj_comp_fit <- grm(hu_subj_comp_data %>% select(-p_id))
+hu_subj_comp_scores <- tibble(hu_subj_comp_data %>% select(p_id),
+                          hu_subj_comp = ltm::factor.scores(hu_subj_comp_fit, resp.patterns = hu_subj_comp_data %>% select(-p_id))$score.dat$z1)
+survey_data <- left_join(survey_data, hu_subj_comp_scores, by = "p_id")
+
+survey_data <- survey_data %>% 
+  mutate(to_watch_warn_group = case_when(
+    survey_hazard == "WX" & is.na(torwatch) == FALSE ~ "watch",
+    survey_hazard == "WX" & is.na(torwarn) == FALSE ~ "warn")) %>% 
+  mutate(to_watch_warn_correct = case_when(
+    to_watch_warn_group == "watch"  & torwatch == 1 ~ 1,
+    to_watch_warn_group == "watch"  & torwatch != 1 ~ 0,
+    to_watch_warn_group == "warn"  & torwarn == 2 ~ 1,
+    to_watch_warn_group == "warn"  & torwarn != 2 ~ 0)) %>% 
+  mutate(to_warn_time_correct = ifelse(warn_time == 1 & warn_time_minutes < 30, 1, 0)) %>% 
+  mutate(to_watch_time_correct = ifelse(watch_time == 2 & watch_time_hours >= 1 & watch_time_hours <= 3, 1, 0)) %>% 
+  mutate(to_warn_size_correct = ifelse(warn_size == 1 | warn_size == 2, 1, 0)) %>% # not including these for now
+  mutate(to_watch_size_correct = ifelse(watch_size == 3 | watch_size == 4 | watch_size == 5, 1, 0)) # not including these for now
+to_obj_comp_data <- survey_data %>%
+  filter(survey_hazard == "WX" & !survey_year == 2017) %>%
+  select(p_id, to_watch_warn_correct, to_warn_time_correct, to_watch_time_correct)
+to_obj_comp_fit <- ltm(to_obj_comp_data %>% select(-p_id) ~ z1)
+to_obj_comp_scores <- tibble(to_obj_comp_data  %>% select(p_id), 
+                              to_obj_comp = ltm::factor.scores(to_obj_comp_fit, resp.patterns = to_obj_comp_data %>% select(-p_id))$score.dat$z1)
+survey_data <- left_join(survey_data, to_obj_comp_scores, by = "p_id")
+
+survey_data <- survey_data %>% 
+  mutate(hu_watch_warn_group = case_when(
+    survey_hazard == "TC" & is.na(hurwatch) == FALSE ~ "hurwatch",
+    survey_hazard == "TC" & is.na(hurwarn) == FALSE ~ "hurwarn")) %>% 
+  mutate(hu_watch_warn_correct = case_when(
+    hu_watch_warn_group == "watch" & hurwatch == 1 ~ 1,
+    hu_watch_warn_group == "watch" & hurwatch != 1 ~ 0,
+    hu_watch_warn_group == "warn" & hurwarn == 2 ~ 1,
+    hu_watch_warn_group == "warn" & hurwarn != 2 ~ 0)) %>% 
+  mutate(ts_warn_time_correct = ifelse(ts_warn_time == 3, 1, 0)) %>% 
+  mutate(hur_warn_time_correct = ifelse(hur_warn_time == 3, 1, 0)) %>% 
+  mutate(srg_warn_time_correct = ifelse(srg_warn_time == 3, 1, 0)) %>% 
+  mutate(ts_watch_time_correct = ifelse(ts_watch_time == 4, 1, 0)) %>% 
+  mutate(hur_watch_time_correct = ifelse(hur_watch_time == 4, 1, 0)) %>% 
+  mutate(srg_watch_time_correct = ifelse(srg_watch_time == 4, 1, 0))
+hu_obj_comp_data <- survey_data %>%
+  filter(survey_hazard == "TC") %>%
+  select(p_id, hu_watch_warn_correct, ts_warn_time_correct, hur_warn_time_correct, srg_warn_time_correct, 
+         ts_watch_time_correct, hur_watch_time_correct, srg_watch_time_correct)
+hu_obj_comp_fit <- ltm(hu_obj_comp_data %>% select(-p_id) ~ z1)
+hu_obj_comp_scores <- tibble(hu_obj_comp_data  %>% select(p_id), 
+                             hu_obj_comp = ltm::factor.scores(hu_obj_comp_fit, resp.patterns = hu_obj_comp_data %>% select(-p_id))$score.dat$z1)
+survey_data <- left_join(survey_data, hu_obj_comp_scores, by = "p_id")
+
+to_resp_data <- survey_data %>%
+  filter(survey_hazard == "WX" & !survey_year == 2017) %>%
+  select(p_id, resp_prot, resp_sleep, resp_driving, resp_work, resp_store, resp_small_group, resp_large_group, resp_morn, resp_aft, resp_eve)
+to_resp_fit <- grm(to_resp_data %>% select(-p_id))
+to_resp_scores <- tibble(to_resp_data %>% select(p_id), 
+                          to_resp = ltm::factor.scores(to_resp_fit, resp.patterns = to_resp_data %>% select(-p_id))$score.dat$z1)
+survey_data <- left_join(survey_data, to_resp_scores, by = "p_id")
+
+hu_resp_data <- survey_data %>%
+  filter(survey_hazard == "TC") %>%
+  select(p_id, resp_always, resp_ignore) %>% 
+  mutate(resp_ignore = (resp_ignore * -1) + 6)
+hu_resp_fit <- grm(hu_resp_data %>% select(-p_id))
+hu_resp_scores <- tibble(hu_resp_data %>% select(p_id),
+                          hu_resp = ltm::factor.scores(hu_resp_fit, resp.patterns = hu_resp_data %>% select(-p_id))$score.dat$z1)
+survey_data <- left_join(survey_data, hu_resp_scores, by = "p_id")
 
 
+all_trust_data <- survey_data %>% 
+  select(p_id, nws_trust, lotv_trust, natv_trust, em_trust)
+all_trust_fit <- grm(all_trust_data %>% select(-p_id))
+all_trust_scores <- tibble(all_trust_data %>% select(p_id),
+                         all_trust = ltm::factor.scores(all_trust_fit, resp.patterns = all_trust_data %>% select(-p_id))$score.dat$z1)
+survey_data <- left_join(survey_data, all_trust_scores, by = "p_id")
 
+all_ready_data <- survey_data %>%
+  select(p_id, rq_4:rq_8) %>% 
+  mutate_at(vars(rq_4:rq_8), list(~ifelse(. == 1, 1, 0)))
+all_ready_fit <- ltm(all_ready_data %>% select(-p_id) ~ z1)
+all_ready_scores <- tibble(all_ready_data %>% select(p_id),
+                           all_ready = ltm::factor.scores(all_ready_fit, resp.patterns = all_ready_data %>% select(-p_id))$score.dat$z1)
+survey_data <- left_join(survey_data, all_ready_scores, by = "p_id")
 
+# efficacy_data <- survey_data %>%
+#   filter(survey_year == 2018) %>%
+#   select(tor_eff1, tor_eff2, tor_eff3, tor_eff4, tor_eff5, tor_eff6, tor_eff7, tor_eff8)
+# efficacy_fit <- grm(efficacy_data)
+# efficacy_scores <- tibble(p_id = filter(survey_data, survey_year == 2018)$p_id, efficacy = ltm::factor.scores(efficacy_fit, resp.patterns = efficacy_data)$score.dat$z1)
+# survey_data <- left_join(survey_data, efficacy_scores, by = "p_id")
 
+# survey_data$myth_tall_correct <- ifelse(survey_data$myth_tall == 0, 1, 0)
+# survey_data$myth_mtns_correct <- ifelse(survey_data$myth_mtns == 1, 1, 0)
+# survey_data$myth_brdg_correct <- ifelse(survey_data$myth_brdge == 1, 1, 0)
+# survey_data$myth_open_correct <- ifelse(survey_data$myth_open == 0, 1, 0)
+# myth_data <- survey_data %>%
+#   filter(survey_year == 2017) %>%
+#   select(myth_tall_correct, myth_mtns_correct, myth_brdg_correct, myth_open_correct)
+# myth_fit <- ltm(myth_data ~ z1)
+# myth_scores <- tibble(p_id = filter(survey_data, survey_year == 2017)$p_id, myth = ltm::factor.scores(myth_fit, resp.patterns = myth_data)$score.dat$z1)
+# survey_data <- left_join(survey_data, myth_scores, by = "p_id")
 
-
-
-
-
-survey_data$watch_warn_group <- ifelse(is.na(survey_data$torwatch) == FALSE, "watch", "warn")
-survey_data$watch_warn_correct <- NA
-survey_data$watch_warn_correct <- ifelse(survey_data$watch_warn_group == "watch" & survey_data$torwatch == 1, 1, survey_data$watch_warn_correct)
-survey_data$watch_warn_correct <- ifelse(survey_data$watch_warn_group == "watch" & survey_data$torwatch != 1, 0, survey_data$watch_warn_correct)
-survey_data$watch_warn_correct <- ifelse(survey_data$watch_warn_group == "warn" & survey_data$torwarn == 2, 1, survey_data$watch_warn_correct)
-survey_data$watch_warn_correct <- ifelse(survey_data$watch_warn_group == "warn" & survey_data$torwarn != 2, 0, survey_data$watch_warn_correct)
-survey_data$warn_time_correct <- ifelse(survey_data$warn_time == 1 & survey_data$warn_time_minutes < 30, 1, 0)
-survey_data$watch_time_correct <- ifelse(survey_data$watch_time == 2 & survey_data$watch_time_hours >= 1 & survey_data$watch_time_hours <= 3, 1, 0)
-survey_data$warn_size_correct <- ifelse(survey_data$warn_size == 1 | survey_data$warn_size == 2, 1, 0)
-survey_data$watch_size_correct <- ifelse(survey_data$watch_size == 3 | survey_data$watch_size == 4 | survey_data$watch_size == 5, 1, 0)
-obj_comp_data <- survey_data %>%
-  filter(!survey_year == 2017) %>%
-  select(watch_warn_correct, warn_time_correct, watch_time_correct, watch_size_correct)
-obj_comp_fit <- ltm(obj_comp_data ~ z1)
-obj_comp_scores <- tibble(p_id = filter(survey_data, !survey_year == 2017)$p_id, obj_comp = ltm::factor.scores(obj_comp_fit, resp.patterns = obj_comp_data)$score.dat$z1)
-survey_data <- left_join(survey_data, obj_comp_scores, by = "p_id")
-
-resp_data <- survey_data %>%
-  filter(!survey_year == 2017) %>%
-  select(resp_prot, resp_sleep, resp_driving, resp_work, resp_store, resp_small_group, resp_large_group, resp_morn, resp_aft, resp_eve)
-resp_fit <- grm(resp_data)
-resp_scores <- tibble(p_id = filter(survey_data, !survey_year == 2017)$p_id, resp = ltm::factor.scores(resp_fit, resp.patterns = resp_data)$score.dat$z1)
-survey_data <- left_join(survey_data, resp_scores, by = "p_id")
-
-trust_data <- survey_data %>% select(nws_trust, lotv_trust, natv_trust, em_trust)
-trust_fit <- grm(trust_data)
-survey_data$trust <- ltm::factor.scores(trust_fit, resp.patterns = trust_data)$score.dat$z1
-
-efficacy_data <- survey_data %>%
-  filter(survey_year == 2018) %>%
-  select(tor_eff1, tor_eff2, tor_eff3, tor_eff4, tor_eff5, tor_eff6, tor_eff7, tor_eff8)
-efficacy_fit <- grm(efficacy_data)
-efficacy_scores <- tibble(p_id = filter(survey_data, survey_year == 2018)$p_id, efficacy = ltm::factor.scores(efficacy_fit, resp.patterns = efficacy_data)$score.dat$z1)
-survey_data <- left_join(survey_data, efficacy_scores, by = "p_id")
-
-survey_data$myth_tall_correct <- ifelse(survey_data$myth_tall == 0, 1, 0)
-survey_data$myth_mtns_correct <- ifelse(survey_data$myth_mtns == 1, 1, 0)
-survey_data$myth_brdg_correct <- ifelse(survey_data$myth_brdge == 1, 1, 0)
-survey_data$myth_open_correct <- ifelse(survey_data$myth_open == 0, 1, 0)
-myth_data <- survey_data %>%
-  filter(survey_year == 2017) %>%
-  select(myth_tall_correct, myth_mtns_correct, myth_brdg_correct, myth_open_correct)
-myth_fit <- ltm(myth_data ~ z1)
-myth_scores <- tibble(p_id = filter(survey_data, survey_year == 2017)$p_id, myth = ltm::factor.scores(myth_fit, resp.patterns = myth_data)$score.dat$z1)
-survey_data <- left_join(survey_data, myth_scores, by = "p_id")
-
-ready_comp_data <- survey_data %>%
-  filter(survey_year %in% c(2019, 2020, 2021)) %>%
-  select(c(rq_4:rq_8)) %>% 
-  mutate_all(funs(ifelse(. == 1, 1, 0)))
-ready_comp_fit <- ltm(ready_comp_data ~ z1)
-ready_comp_scores <- tibble(p_id = filter(survey_data, survey_year %in% c(2019, 2020, 2021))$p_id, ready = ltm::factor.scores(ready_comp_fit, resp.patterns = ready_comp_data)$score.dat$z1)
-survey_data <- left_join(survey_data, ready_comp_scores, by = "p_id")
 
 # Write Data -----------------------------
 write_csv(survey_data, paste0(outputs, "base_survey_data.csv"))

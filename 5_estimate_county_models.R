@@ -39,7 +39,7 @@ saveRDS(fips_to_subj_comp_fit, paste0(outputs, "county_models/fips_to_subj_comp_
 fips_hu_subj_comp_fit <- lmer(hu_subj_comp ~ 1 + MALE + AGE_GROUP + HISP + RACE_GROUP + (1|FIPS) + (1|MALE:AGE_GROUP) +
                                FIPS_HURR + FIPS_RPL_THEME1 + FIPS_RPL_THEME2 + FIPS_RPL_THEME3 + FIPS_RPL_THEME4,
                              data = survey_data)
-saveRDS(fips_hu_subj_comp_fit, paste0(outputs, "county_models/fips_to_subj_comp_fit.Rds"))
+saveRDS(fips_hu_subj_comp_fit, paste0(outputs, "county_models/fips_hu_subj_comp_fit.Rds"))
 
 fips_to_obj_comp_fit <- lmer(to_obj_comp ~ 1 + MALE + AGE_GROUP + HISP + RACE_GROUP + (1|FIPS) + (1|MALE:AGE_GROUP) +
                               FIPS_TORN + FIPS_RPL_THEME1 + FIPS_RPL_THEME2 + FIPS_RPL_THEME3 + FIPS_RPL_THEME4,

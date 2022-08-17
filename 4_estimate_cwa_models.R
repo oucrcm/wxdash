@@ -39,7 +39,7 @@ saveRDS(cwa_to_subj_comp_fit, paste0(outputs, "cwa_models/cwa_to_subj_comp_fit.R
 cwa_hu_subj_comp_fit <- lmer(hu_subj_comp ~ 1 + MALE + AGE_GROUP + HISP + RACE_GROUP + (1|CWA) + (1|MALE:AGE_GROUP) +
                                CWA_HURR + CWA_RPL_THEME1 + CWA_RPL_THEME2 + CWA_RPL_THEME3 + CWA_RPL_THEME4,
                              data = survey_data)
-saveRDS(cwa_hu_subj_comp_fit, paste0(outputs, "cwa_models/cwa_to_subj_comp_fit.Rds"))
+saveRDS(cwa_hu_subj_comp_fit, paste0(outputs, "cwa_models/cwa_hu_subj_comp_fit.Rds"))
 
 cwa_to_obj_comp_fit <- lmer(to_obj_comp ~ 1 + MALE + AGE_GROUP + HISP + RACE_GROUP + (1|CWA) + (1|MALE:AGE_GROUP) +
                                 CWA_TORN + CWA_RPL_THEME1 + CWA_RPL_THEME2 + CWA_RPL_THEME3 + CWA_RPL_THEME4,

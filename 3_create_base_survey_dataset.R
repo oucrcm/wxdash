@@ -1,9 +1,8 @@
 library(ltm)
-library(readxl)
-library(sf)
 library(tidyverse)
 library(data.table)
-options(scipen = 9999)
+library(readxl)
+library(sf)
 
 downloads <- "/Users/josephripberger/Dropbox (Univ. of Oklahoma)/Severe Weather and Society Dashboard/local files/downloads/" # define locally!!!
 outputs <- "/Users/josephripberger/Dropbox (Univ. of Oklahoma)/Severe Weather and Society Dashboard/local files/outputs/" # define locally!!!
@@ -234,7 +233,6 @@ hu_resp_scores <- tibble(hu_resp_data %>% select(p_id),
                           hu_resp = ltm::factor.scores(hu_resp_fit, resp.patterns = hu_resp_data %>% select(-p_id))$score.dat$z1)
 survey_data <- left_join(survey_data, hu_resp_scores, by = "p_id")
 
-
 all_trust_data <- survey_data %>% 
   select(p_id, nws_trust, lotv_trust, natv_trust, em_trust)
 all_trust_fit <- grm(all_trust_data %>% select(-p_id))
@@ -250,12 +248,13 @@ all_ready_scores <- tibble(all_ready_data %>% select(p_id),
                            all_ready = ltm::factor.scores(all_ready_fit, resp.patterns = all_ready_data %>% select(-p_id))$score.dat$z1)
 survey_data <- left_join(survey_data, all_ready_scores, by = "p_id")
 
-# efficacy_data <- survey_data %>%
-#   filter(survey_year == 2018) %>%
-#   select(tor_eff1, tor_eff2, tor_eff3, tor_eff4, tor_eff5, tor_eff6, tor_eff7, tor_eff8)
-# efficacy_fit <- grm(efficacy_data)
-# efficacy_scores <- tibble(p_id = filter(survey_data, survey_year == 2018)$p_id, efficacy = ltm::factor.scores(efficacy_fit, resp.patterns = efficacy_data)$score.dat$z1)
-# survey_data <- left_join(survey_data, efficacy_scores, by = "p_id")
+to_eff_data <- survey_data %>%
+  filter(survey_hazard == "WX", survey_year == 2018) %>%
+  select(p_id, tor_eff1, tor_eff2, tor_eff3, tor_eff4, tor_eff5, tor_eff6, tor_eff7, tor_eff8)
+to_eff_fit <- grm(to_eff_data %>% select(-p_id))
+to_eff_scores <- tibble(to_eff_data %>% select(p_id), 
+                         to_eff = ltm::factor.scores(to_eff_fit, resp.patterns = to_eff_data %>% select(-p_id))$score.dat$z1)
+survey_data <- left_join(survey_data, to_eff_scores, by = "p_id")
 
 # survey_data$myth_tall_correct <- ifelse(survey_data$myth_tall == 0, 1, 0)
 # survey_data$myth_mtns_correct <- ifelse(survey_data$myth_mtns == 1, 1, 0)

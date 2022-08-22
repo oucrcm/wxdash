@@ -35,23 +35,22 @@ output:
 library(flexdashboard)
 library(leaflet.extras)
 library(leaflet)
-library(rgdal)
+library(rgdal) # TODO: transition to sf
 library(tidyverse)
 library(shiny)
 library(viridis)
 library(RColorBrewer)
 map <- readOGR("outputs/cwa_estimates")
 map@data <- map@data %>%
-  mutate_at(vars(RECEP:DROUGHT), funs(pnorm(.) * 100)) # convert z-scores to percentile ranks
+  mutate_at(vars(TO_RECEP:DROUGHT), funs(pnorm(.) * 100)) # convert z-scores to percentile ranks
 map$CWA <- as.character(map$CWA)
 
 fips_map <- readOGR("outputs/county_estimates")
 fips_map@data <- fips_map@data %>%
-  mutate_at(vars(RECEP:DROUGHT), funs(pnorm(.) * 100)) # convert z-scores to percentile ranks
+  mutate_at(vars(TO_RECEP:DROUGHT), funs(pnorm(.) * 100)) # convert z-scores to percentile ranks
 fips_map$CWA <- as.character(fips_map$CWA)
 
 survey_data <- read.csv("outputs/base_survey_data.csv")
-psych::describe(survey_data)
 
 # Define demographic groups
 survey_data$Gender <- factor(survey_data$MALE, labels = c("Female", "Male"))
@@ -61,7 +60,7 @@ survey_data$Age <- factor(survey_data$AGE_GROUP, labels = c("18-34", "35-59", "6
 survey_data$Education <- car::recode(survey_data$edu, "1:3 = 'Less than College'; 4:6 = 'Some College/College Degree'; 7:8 = 'More than College'")
 survey_data$Education <- factor(survey_data$Education, levels = c("Less than College", "Some College/College Degree", "More than College"))
 survey_data$Region <- factor(survey_data$nws_region)
-survey_data$Numeracy <- factor(survey_data$Numeracy, levels = c("Low", "Moderate", "High"))
+# survey_data$Numeracy <- factor(survey_data$Numeracy, levels = c("Low", "Moderate", "High")) # TODO: fix this in base survey file
 survey_data$Area <- factor(survey_data$rural, labels = c("Urban", "Suburban", "Rural"))
 survey_data$Understanding <- car::recode(survey_data$und_weather, "1 = 'High'; 2 = 'Moderate'; 3:5 = 'Low'")
 survey_data$Understanding <- factor(survey_data$Understanding, levels = c("Low", "Moderate", "High"))
@@ -74,7 +73,7 @@ groups <- c("All" = "All",
             "Age Group" = "Age",
             "NWS Region" = "Region", 
             "Education" = "Education", 
-            "Numeracy" = "Numeracy", 
+            # "Numeracy" = "Numeracy", 
             "Geographic Area (Urban/Rural)" = "Area", 
             "Understanding of Extreme Weather" = "Understanding", 
             "Survey Year" = "Year")
@@ -90,16 +89,6 @@ Sidebar {.sidebar data-width=300}
 <br/>
 <br/>
 
-```{r}
-selectInput(inputId = 'variable', label = 'Select composite measure to explore', choices = c('Tornado Warning Reception' = 'RECEP', 
-                                                                                 'Tornado Warning Comprehension (Subjective)' = 'SUB_COM', 
-                                                                                 'Tornado Warning Comprehension (Objective)' = 'OBJ_COM',
-                                                                                 'Tornado Warning Response' = 'RESP',
-                                                                                 'Efficacy of Protective Actions' = 'EFFICAC', 
-                                                                                 'Vulnerability to Tornado Myths' = 'MYTH',
-                                                                                 'Severe Weather Preparedness' = 'READY'))
-```
-
 **Instructions.** Select a measure from the drop down menu (above) to see an *average person percentile (APP) rank* estimate for each County Warning Area (CWA). These estimates compare the average percentile rank of adults who live in a CWA to the distribution of adults in the US. For example, a APP rank estimate of 62 indicates that, on average, adults who live in that CWA are above the national average; they score higher than 62% of adults across the country. If you click on the map, a box will open that provides more information on the CWA, such as the percentile rank of the CWA in comparison to other CWAs. A plot will also come up below that maps the distribution of APP ranks by county within the CWA you select.
 <br/>
 <br/>
@@ -110,10 +99,22 @@ selectInput(inputId = 'variable', label = 'Select composite measure to explore',
 <br/>
 Contact [Joe Ripberger](mailto:jtr@ou.edu) or [Carol Silva](mailto:clsilva@ou.edu) if you have questions about the data or project.
 
-Row
+Row{.tabset}
 -----------------------------------------------------------------------
 
-### Estimates by NWS County Warning Area (CWA)
+### Severe
+```{r}
+div(style = "font-size: 11px",
+    selectInput(inputId = 'variable',
+                label = 'Select composite measure to explore',
+                choices = c('Tornado Warning Reception' = 'TO_RECEP',
+                            'Tornado Warning Comprehension (Subjective)' = 'TO_SUB_COM',
+                            'Tornado Warning Comprehension (Objective)' = 'TO_OBJ_COM',
+                            'Tornado Warning Response' = 'TO_RESP',
+                            'Efficacy of Protective Actions' = 'TO_EFFICAC'))
+    )
+```
+
 ```{r}
 variable_map_cols <- viridis(100)
 variable_map_pal <- colorNumeric(palette = variable_map_cols, domain = c(30, 70))
@@ -155,6 +156,12 @@ tract_data <- reactive({
   })
 ```
 
+### Tropical
+
+### Winter
+
+### WRN
+
 Row
 -----------------------------------------------------------------------
 
@@ -168,7 +175,7 @@ output$fips_map <- renderLeaflet({
   map <- fips_map[fips_map$CWA == tract_data()[, 1], ]
   map$variableplot <- map@data[, input$variable]
   # variable_map_pal <- colorNumeric(palette = variable_map_cols, domain = c(min(map$variableplot), max(map$variableplot))) # MAKE COLORS RELATIVE WITHIN CWA
-  p_popup <- with(map@data, paste0(COUNTYNAME, ", County ", "(", CWA, ")", "<br>",
+  p_popup <- with(map@data, paste0(NAME, ", County ", "(", CWA, ")", "<br>",
                                    "Percentile rank of the average person in the County: ", round(variableplot, 2), "<br>",
                                    "Percentile rank of the County: ", round(pnorm(scale(variableplot)) * 100, 2)))
   l <- leaflet(map) %>%
@@ -192,98 +199,99 @@ leafletOutput(outputId = "fips_map")
 ```
 
 ### Survey Questions
-```{r}
-R1 <- data.frame(
-  question = c("[Please tell us how strongly you agree with the following statements about tornado WARNINGS:] I receive all tornado warnings that are issued for my area.",
-               "[Please tell us how strongly you agree with the following statements about tornado WARNINGS:] I receive most tornado warnings that are issued for my area.",
-               "[Please tell us how strongly you agree with the following statements about tornado WARNINGS:] I receive tornado warnings as soon as they are issued for my area.",
-               "[How confident are you that you would receive tornado warnings in the following situations:] If you are sleeping?",
-               "[How confident are you that you would receive tornado warnings in the following situations:] If you are in a car?",
-               "[How confident are you that you would receive tornado warnings in the following situations:] If you are at work or school?",
-               "[How confident are you that you would receive tornado warnings in the following situations:] If you are at a store?",
-               "[How confident are you that you would receive tornado warnings in the following situations:] If you are with a small group of friends or family?",
-               "[How confident are you that you would receive tornado warnings in the following situations:] If you are with a large group of friends or family?",
-               "[If a tornado WARNING were issued for your area tomorrow at [RANDOM TIME], how confident are you that you would receive the warning:] 1:00 AM – 9:00 AM",
-               "[If a tornado WARNING were issued for your area tomorrow at [RANDOM TIME], how confident are you that you would receive the warning:] 10:00 AM – 5:00 PM",
-               "[If a tornado WARNING were issued for your area tomorrow at [RANDOM TIME], how confident are you that you would receive the warning:] 6:00 PM – 12:00 AM"))
 
-R2 <- data.frame(
-  question = c("In general, do you understand the difference between watches and warnings?",
-               "How would you rate your understanding of tornado watches and warnings?",
-               "How would you rate your understanding of severe thunderstorm watches and warnings?",
-               "Forecasters, websites, and phone applications often use maps to display tornado watches and warnings. How would you rate your understanding of maps?",
-               "Forecasters, websites, and phone applications also use radar images to communicate tornado risk. How would you rate your understanding of radar images?",
-               "[If a tornado WARNING were issued for your area tomorrow at [RANDOM TIME], how confident are you that you would understand the warning:] 1:00 AM – 9:00 AM",
-               "[If a tornado WARNING were issued for your area tomorrow at [RANDOM TIME], how confident are you that you would understand the warning:] 10:00 AM – 5:00 PM",
-               "[If a tornado WARNING were issued for your area tomorrow at [RANDOM TIME], how confident are you that you would understand the warning:] 6:00 PM – 12:00 AM"))
+<!-- ```{r} -->
+<!-- R1 <- data.frame( -->
+<!--   question = c("[Please tell us how strongly you agree with the following statements about tornado WARNINGS:] I receive all tornado warnings that are issued for my area.", -->
+<!--                "[Please tell us how strongly you agree with the following statements about tornado WARNINGS:] I receive most tornado warnings that are issued for my area.", -->
+<!--                "[Please tell us how strongly you agree with the following statements about tornado WARNINGS:] I receive tornado warnings as soon as they are issued for my area.", -->
+<!--                "[How confident are you that you would receive tornado warnings in the following situations:] If you are sleeping?", -->
+<!--                "[How confident are you that you would receive tornado warnings in the following situations:] If you are in a car?", -->
+<!--                "[How confident are you that you would receive tornado warnings in the following situations:] If you are at work or school?", -->
+<!--                "[How confident are you that you would receive tornado warnings in the following situations:] If you are at a store?", -->
+<!--                "[How confident are you that you would receive tornado warnings in the following situations:] If you are with a small group of friends or family?", -->
+<!--                "[How confident are you that you would receive tornado warnings in the following situations:] If you are with a large group of friends or family?", -->
+<!--                "[If a tornado WARNING were issued for your area tomorrow at [RANDOM TIME], how confident are you that you would receive the warning:] 1:00 AM – 9:00 AM", -->
+<!--                "[If a tornado WARNING were issued for your area tomorrow at [RANDOM TIME], how confident are you that you would receive the warning:] 10:00 AM – 5:00 PM", -->
+<!--                "[If a tornado WARNING were issued for your area tomorrow at [RANDOM TIME], how confident are you that you would receive the warning:] 6:00 PM – 12:00 AM")) -->
 
-R3 <- data.frame(
-  question = c("This alert is issued when severe thunderstorms and tornadoes are possible in and near the area. It does not mean that they will occur. It only means they are possible. [Tornado Watch*, Tornado Warning, Don't Know]",
-               "This alert is used when a tornado is imminent. When this alert is issued, seek safe shelter immediately. [Tornado Watch, Tornado Warning*, Don't]",
-               "If the National Weather Service issues a tornado warning for your area, how much time do you have before the tornado arrives? [Less than 1 hour*, 1 to 24 hours, 1 to 3 days, More than 3 days]",
-               "If the National Weather Service issues a tornado watch for your area, how much time do you have before the tornado arrives? [Less than 1 hour, 1 to 24 hours*, 1 to 3 days, More than 3 days]",
-               "Approximately how large is the area included in an average tornado watch? [Around the size of a city, Around the size of a county, Around the size of multiple counties*, Around the size of a state*, Around the size of multiple states*]"))
+<!-- R2 <- data.frame( -->
+<!--   question = c("In general, do you understand the difference between watches and warnings?", -->
+<!--                "How would you rate your understanding of tornado watches and warnings?", -->
+<!--                "How would you rate your understanding of severe thunderstorm watches and warnings?", -->
+<!--                "Forecasters, websites, and phone applications often use maps to display tornado watches and warnings. How would you rate your understanding of maps?", -->
+<!--                "Forecasters, websites, and phone applications also use radar images to communicate tornado risk. How would you rate your understanding of radar images?", -->
+<!--                "[If a tornado WARNING were issued for your area tomorrow at [RANDOM TIME], how confident are you that you would understand the warning:] 1:00 AM – 9:00 AM", -->
+<!--                "[If a tornado WARNING were issued for your area tomorrow at [RANDOM TIME], how confident are you that you would understand the warning:] 10:00 AM – 5:00 PM", -->
+<!--                "[If a tornado WARNING were issued for your area tomorrow at [RANDOM TIME], how confident are you that you would understand the warning:] 6:00 PM – 12:00 AM")) -->
 
-R4 <- data.frame(
-  question = c("[Please tell us how strongly you agree with the following statements about tornado WARNINGS:] If you have never received a tornado WARNING, please tell us how you think you will respond if you receive a WARNING in the future.", 
-               "[Please tell us how strongly you agree with the following statements about tornado WARNINGS:] I always take protective action when tornado warnings are issued for my area.",
-               "[How confident are you that you would take protective action in response to tornado warnings in the following situations:] If you are sleeping?",
-               "[How confident are you that you would take protective action in response to tornado warnings in the following situations:] If you are in a car?",
-               "[How confident are you that you would take protective action in response to tornado warnings in the following situations:] If you are at work or school?",
-               "[How confident are you that you would take protective action in response to tornado warnings in the following situations:] If you are at a store?",
-               "[How confident are you that you would take protective action in response to tornado warnings in the following situations:] If you are with a small group of friends or family?",
-               "[How confident are you that you would take protective action in response to tornado warnings in the following situations:] If you are with a large group of friends or family?",
-               "[If a tornado WARNING were issued for your area tomorrow at [RANDOM TIME], how confident are you that you would take protective action in response to the warning:] 1:00 AM – 9:00 AM",
-               "[If a tornado WARNING were issued for your area tomorrow at [RANDOM TIME], how confident are you that you would take protective action in response to the warning:] 10:00 AM – 5:00 PM",
-               "[If a tornado WARNING were issued for your area tomorrow at [RANDOM TIME], how confident are you that you would take protective action in response to the warning:] 6:00 PM – 12:00 AM"))
+<!-- R3 <- data.frame( -->
+<!--   question = c("This alert is issued when severe thunderstorms and tornadoes are possible in and near the area. It does not mean that they will occur. It only means they are possible. [Tornado Watch*, Tornado Warning, Don't Know]", -->
+<!--                "This alert is used when a tornado is imminent. When this alert is issued, seek safe shelter immediately. [Tornado Watch, Tornado Warning*, Don't]", -->
+<!--                "If the National Weather Service issues a tornado warning for your area, how much time do you have before the tornado arrives? [Less than 1 hour*, 1 to 24 hours, 1 to 3 days, More than 3 days]", -->
+<!--                "If the National Weather Service issues a tornado watch for your area, how much time do you have before the tornado arrives? [Less than 1 hour, 1 to 24 hours*, 1 to 3 days, More than 3 days]", -->
+<!--                "Approximately how large is the area included in an average tornado watch? [Around the size of a city, Around the size of a county, Around the size of multiple counties*, Around the size of a state*, Around the size of multiple states*]")) -->
+
+<!-- R4 <- data.frame( -->
+<!--   question = c("[Please tell us how strongly you agree with the following statements about tornado WARNINGS:] If you have never received a tornado WARNING, please tell us how you think you will respond if you receive a WARNING in the future.",  -->
+<!--                "[Please tell us how strongly you agree with the following statements about tornado WARNINGS:] I always take protective action when tornado warnings are issued for my area.", -->
+<!--                "[How confident are you that you would take protective action in response to tornado warnings in the following situations:] If you are sleeping?", -->
+<!--                "[How confident are you that you would take protective action in response to tornado warnings in the following situations:] If you are in a car?", -->
+<!--                "[How confident are you that you would take protective action in response to tornado warnings in the following situations:] If you are at work or school?", -->
+<!--                "[How confident are you that you would take protective action in response to tornado warnings in the following situations:] If you are at a store?", -->
+<!--                "[How confident are you that you would take protective action in response to tornado warnings in the following situations:] If you are with a small group of friends or family?", -->
+<!--                "[How confident are you that you would take protective action in response to tornado warnings in the following situations:] If you are with a large group of friends or family?", -->
+<!--                "[If a tornado WARNING were issued for your area tomorrow at [RANDOM TIME], how confident are you that you would take protective action in response to the warning:] 1:00 AM – 9:00 AM", -->
+<!--                "[If a tornado WARNING were issued for your area tomorrow at [RANDOM TIME], how confident are you that you would take protective action in response to the warning:] 10:00 AM – 5:00 PM", -->
+<!--                "[If a tornado WARNING were issued for your area tomorrow at [RANDOM TIME], how confident are you that you would take protective action in response to the warning:] 6:00 PM – 12:00 AM")) -->
 
 
-R5 <- data.frame(
-  question = c("[Please tell us how strongly you agree with the following statements:] It is possible for most people in my area to prepare and to secure their property ahead of time for a tornado.",
-               "[Please tell us how strongly you agree with the following statements:] It is possible for most people in my area to develop a safety plan for how to deal with a tornado.",
-               "[Please tell us how strongly you agree with the following statements:] It is possible for most people in my area to protect themselves against a tornado.",
-               "[Please tell us how strongly you agree with the following statements:] It is possible for most people in my area to evacuate when necessary ahead of a tornado.",
-               "[Please tell us how strongly you agree with the following statements:] I feel that I can prepare and secure my property ahead of time for a tornado.",
-               "[Please tell us how strongly you agree with the following statements:] I have a safety plan for how to deal with a tornado.",
-               "[Please tell us how strongly you agree with the following statements:] I can protect myself against a tornado.",
-               "[Please tell us how strongly you agree with the following statements:] I can evacuate when necessary ahead of a tornado."))
+<!-- R5 <- data.frame( -->
+<!--   question = c("[Please tell us how strongly you agree with the following statements:] It is possible for most people in my area to prepare and to secure their property ahead of time for a tornado.", -->
+<!--                "[Please tell us how strongly you agree with the following statements:] It is possible for most people in my area to develop a safety plan for how to deal with a tornado.", -->
+<!--                "[Please tell us how strongly you agree with the following statements:] It is possible for most people in my area to protect themselves against a tornado.", -->
+<!--                "[Please tell us how strongly you agree with the following statements:] It is possible for most people in my area to evacuate when necessary ahead of a tornado.", -->
+<!--                "[Please tell us how strongly you agree with the following statements:] I feel that I can prepare and secure my property ahead of time for a tornado.", -->
+<!--                "[Please tell us how strongly you agree with the following statements:] I have a safety plan for how to deal with a tornado.", -->
+<!--                "[Please tell us how strongly you agree with the following statements:] I can protect myself against a tornado.", -->
+<!--                "[Please tell us how strongly you agree with the following statements:] I can evacuate when necessary ahead of a tornado.")) -->
 
-R6 <- data.frame(
-  question = c("[To the best of your knowledge, are the following statements about tornadoes true or false:] Tall buildings protect large cities from tornadoes.",
-               "[To the best of your knowledge, are the following statements about tornadoes true or false:] Mountains, rivers, and lakes do not protect nearby areas from tornadoes.",
-               "[To the best of your knowledge, are the following statements about tornadoes true or false:] When driving, you should not take shelter from tornadoes under a bridge or overpass.",
-               "[To the best of your knowledge, are the following statements about tornadoes true or false:] When sheltering in a house from a tornado, you should open all the windows to equalize the pressure inside and outside to prevent the house from exploding."))
+<!-- R6 <- data.frame( -->
+<!--   question = c("[To the best of your knowledge, are the following statements about tornadoes true or false:] Tall buildings protect large cities from tornadoes.", -->
+<!--                "[To the best of your knowledge, are the following statements about tornadoes true or false:] Mountains, rivers, and lakes do not protect nearby areas from tornadoes.", -->
+<!--                "[To the best of your knowledge, are the following statements about tornadoes true or false:] When driving, you should not take shelter from tornadoes under a bridge or overpass.", -->
+<!--                "[To the best of your knowledge, are the following statements about tornadoes true or false:] When sheltering in a house from a tornado, you should open all the windows to equalize the pressure inside and outside to prevent the house from exploding.")) -->
 
-R7 <- data.frame(
-  question = c("In the last year, have you prepared a disaster supply kit with emergency supplies like water, food and medicine that is kept in a designated place in your home?",
-               "In the last year, have you prepared a small kit with emergency supplies that you keep at home, in your car or where you work to take with you if you had to leave quickly?",
-               "In the last year, have you made a specific plan for how you and your family would communicate in an emergency situation if you were separated?",
-               "In the last year, have you established a specific meeting place to reunite in the event you and your family cannot return home or are evacuated?",
-               "In the last year, have you practiced or drilled on what to do in an emergency at home?"))
+<!-- R7 <- data.frame( -->
+<!--   question = c("In the last year, have you prepared a disaster supply kit with emergency supplies like water, food and medicine that is kept in a designated place in your home?", -->
+<!--                "In the last year, have you prepared a small kit with emergency supplies that you keep at home, in your car or where you work to take with you if you had to leave quickly?", -->
+<!--                "In the last year, have you made a specific plan for how you and your family would communicate in an emergency situation if you were separated?", -->
+<!--                "In the last year, have you established a specific meeting place to reunite in the event you and your family cannot return home or are evacuated?", -->
+<!--                "In the last year, have you practiced or drilled on what to do in an emergency at home?")) -->
 
-composite_questions <- bind_rows(R1 %>% mutate(measure = "RECEP"), 
-                                 R2 %>% mutate(measure = "SUB_COM"),
-                                 R3 %>% mutate(measure = "OBJ_COM"),
-                                 R4 %>% mutate(measure = "RESP"),
-                                 R5 %>% mutate(measure = "EFFICAC"),
-                                 R6 %>% mutate(measure = "MYTH"),
-                                 R7 %>% mutate(measure = "READY"))
+<!-- composite_questions <- bind_rows(R1 %>% mutate(measure = "RECEP"),  -->
+<!--                                  R2 %>% mutate(measure = "SUB_COM"), -->
+<!--                                  R3 %>% mutate(measure = "OBJ_COM"), -->
+<!--                                  R4 %>% mutate(measure = "RESP"), -->
+<!--                                  R5 %>% mutate(measure = "EFFICAC"), -->
+<!--                                  R6 %>% mutate(measure = "MYTH"), -->
+<!--                                  R7 %>% mutate(measure = "READY")) -->
 
-DT::renderDataTable({
-  data <- composite_questions %>% 
-    filter(measure == input$variable) %>% 
-    select(question)
-  DT::datatable(data,
-                filter = "top",
-                selection = "single",
-                rownames = FALSE,
-                style = "bootstrap",
-                class = "compact",
-                options = list(dom = "Blrtip", pageLength = 25), 
-                colnames = c("Question Text" = "question"))
-})
+<!-- DT::renderDataTable({ -->
+<!--   data <- composite_questions %>%  -->
+<!--     filter(measure == input$variable) %>%  -->
+<!--     select(question) -->
+<!--   DT::datatable(data, -->
+<!--                 filter = "top", -->
+<!--                 selection = "single", -->
+<!--                 rownames = FALSE, -->
+<!--                 style = "bootstrap", -->
+<!--                 class = "compact", -->
+<!--                 options = list(dom = "Blrtip", pageLength = 25),  -->
+<!--                 colnames = c("Question Text" = "question")) -->
+<!-- }) -->
 
-```
+<!-- ``` -->
 
 Risk Perceptions
 ======================================================================
@@ -522,424 +530,423 @@ renderPlot({
   }, height = 900)
 ```
 
-Experiments
-======================================================================
+<!-- Experiments -->
+<!-- ====================================================================== -->
 
-Row {.tabset data-height=1000}
------------------------------------------------------------------------
+<!-- Row {.tabset data-height=1000} -->
+<!-- ----------------------------------------------------------------------- -->
 
-### Probability Language
-This experiment explores public perceptions about the words and phrases that forecasters commonly use to communicate probability. The data come from WX18 & WX19. Review the [reference reports](http://risk.ou.edu/downloads/news/WX18-Reference-Report.pdf) for more information and complete question wording. Some key findings from this experiment include:
+<!-- ### Probability Language -->
+<!-- This experiment explores public perceptions about the words and phrases that forecasters commonly use to communicate probability. The data come from WX18 & WX19. Review the [reference reports](http://risk.ou.edu/downloads/news/WX18-Reference-Report.pdf) for more information and complete question wording. Some key findings from this experiment include: -->
 
-  - Public interpretations of probabilistic words and phrases are very inconsistent.
-  - Forecasters can reduce this inconsistency by including basic qualifying expressions:
-      - Phrases like ***there is a low chance of severe thunderstorms*** generate more consistant interpretations than phases like ***severe thunderstorms are possible***.
+<!--   - Public interpretations of probabilistic words and phrases are very inconsistent. -->
+<!--   - Forecasters can reduce this inconsistency by including basic qualifying expressions: -->
+<!--       - Phrases like ***there is a low chance of severe thunderstorms*** generate more consistant interpretations than phases like ***severe thunderstorms are possible***. -->
 
-```{r}
-selectInput(inputId = 'prob_event', label = 'Select an event type', choices = c('Severe Thunderstorms' = 'Severe Thunderstorms', 'Tornadoes' = 'Tornadoes'))
-```
+<!-- ```{r} -->
+<!-- selectInput(inputId = 'prob_event', label = 'Select an event type', choices = c('Severe Thunderstorms' = 'Severe Thunderstorms', 'Tornadoes' = 'Tornadoes')) -->
+<!-- ``` -->
 
-Forecasters use different phrases to explain the possibility that [severe thunderstorms|tornadoes] will happen. When you see the following phrases, what percent chance comes to mind?
+<!-- Forecasters use different phrases to explain the possibility that [severe thunderstorms|tornadoes] will happen. When you see the following phrases, what percent chance comes to mind? -->
 
-```{r}
-svs_data1 <- survey_data %>%
-  filter(prob_event == "severe thunderstorms") %>%
-  select(risk_chan, risk_poss, risk_may, risk_exp) %>%
-  gather() %>%
-  na.omit %>%
-  mutate(prob_event = "Severe Thunderstorms", value = as.numeric(value))
-svs_data1 <- transform(svs_data1, key = reorder(key, value))
+<!-- ```{r} -->
+<!-- svs_data1 <- survey_data %>% -->
+<!--   filter(prob_event == "severe thunderstorms") %>% -->
+<!--   select(risk_chan, risk_poss, risk_may, risk_exp) %>% -->
+<!--   gather() %>% -->
+<!--   na.omit %>% -->
+<!--   mutate(prob_event = "Severe Thunderstorms", value = as.numeric(value)) -->
+<!-- svs_data1 <- transform(svs_data1, key = reorder(key, value)) -->
 
-tor_data1 <- survey_data %>%
-  filter(prob_event == "tornadoes") %>%
-  select(risk_chan, risk_poss, risk_may, risk_exp) %>%
-  gather() %>%
-  na.omit %>%
-  mutate(prob_event = "Tornadoes", value = as.numeric(value))
-tor_data1 <- transform(tor_data1, key = reorder(key, value))
+<!-- tor_data1 <- survey_data %>% -->
+<!--   filter(prob_event == "tornadoes") %>% -->
+<!--   select(risk_chan, risk_poss, risk_may, risk_exp) %>% -->
+<!--   gather() %>% -->
+<!--   na.omit %>% -->
+<!--   mutate(prob_event = "Tornadoes", value = as.numeric(value)) -->
+<!-- tor_data1 <- transform(tor_data1, key = reorder(key, value)) -->
 
-words_data1 <- bind_rows(svs_data1, tor_data1)
+<!-- words_data1 <- bind_rows(svs_data1, tor_data1) -->
 
-svs_data2 <- survey_data %>%
-  filter(prob_event == "severe thunderstorm") %>%
-  select(ext_low, vry_low, vry_small, prty_low, small, low, slight, remote, medium, moderate,
-         good, high, large, prty_high, vry_high, sig, ext_high) %>%
-  gather() %>%
-  na.omit %>%
-  mutate(prob_event = "Severe Thunderstorms")
-svs_data2 <- transform(svs_data2, key = reorder(key, value))
+<!-- svs_data2 <- survey_data %>% -->
+<!--   filter(prob_event == "severe thunderstorm") %>% -->
+<!--   select(ext_low, vry_low, vry_small, prty_low, small, low, slight, remote, medium, moderate, -->
+<!--          good, high, large, prty_high, vry_high, sig, ext_high) %>% -->
+<!--   gather() %>% -->
+<!--   na.omit %>% -->
+<!--   mutate(prob_event = "Severe Thunderstorms") -->
+<!-- svs_data2 <- transform(svs_data2, key = reorder(key, value)) -->
 
-tor_data2 <- survey_data %>%
-  filter(prob_event == "tornado") %>%
-  select(ext_low, vry_low, vry_small, prty_low, small, low, slight, remote, medium, moderate,
-         good, high, large, prty_high, vry_high, sig, ext_high) %>%
-  gather() %>%
-  na.omit %>%
-  mutate(prob_event = "Tornadoes")
-tor_data2 <- transform(tor_data2, key = reorder(key, value))
+<!-- tor_data2 <- survey_data %>% -->
+<!--   filter(prob_event == "tornado") %>% -->
+<!--   select(ext_low, vry_low, vry_small, prty_low, small, low, slight, remote, medium, moderate, -->
+<!--          good, high, large, prty_high, vry_high, sig, ext_high) %>% -->
+<!--   gather() %>% -->
+<!--   na.omit %>% -->
+<!--   mutate(prob_event = "Tornadoes") -->
+<!-- tor_data2 <- transform(tor_data2, key = reorder(key, value)) -->
 
-words_data2 <- bind_rows(svs_data2, tor_data2)
+<!-- words_data2 <- bind_rows(svs_data2, tor_data2) -->
 
-renderPlot({
-    d1 <- words_data1[words_data1$prob_event == input$prob_event, ]
-    p1 <- ggplot(d1, aes(x = key, y = value)) +
-      geom_boxplot(aes(fill = key), alpha = 0.8, size = 0.3, outlier.size = -1) +
-      guides(fill = FALSE, color = FALSE) +
-      coord_flip() +
-      labs(x = "", y = "Response (Percent)", title = "No Qualifying Expressions [WX18]") +
-      theme_minimal() +
-      theme(text = element_text(size = 16),
-            plot.title = element_text(size = 14)) +
-      scale_fill_viridis(discrete = TRUE) +
-      scale_y_continuous(breaks = seq(0, 100, 10), labels = paste0(seq(0, 100, 10), "%")) +
-      scale_x_discrete(labels = c("risk_chan" = "There is a chance of [...]",
-                                  "risk_poss" = "[...] are possible",
-                                  "risk_may" = "[...] may occur",
-                                  "risk_exp" = "[...] are expected"))
-    d2 <- words_data2[words_data2$prob_event == input$prob_event, ]
-    p2 <- ggplot(d2, aes(x = key, y = value)) +
-      geom_boxplot(aes(fill = key), alpha = 0.8, size = 0.3, outlier.size = -1) +
-      guides(fill = FALSE, color = FALSE) +
-      coord_flip() +
-      labs(x = "", y = "Response (Percent)", title = "Qualifying Expressions [WX19]") +
-      theme_minimal() +
-      theme(text = element_text(size = 16),
-            plot.title = element_text(size = 14)) +
-      scale_fill_viridis(discrete = TRUE) +
-      scale_y_continuous(breaks = seq(0, 100, 10), labels = paste0(seq(0, 100, 10), "%")) +
-      scale_x_discrete(labels = c("ext_low" = "Extremely low chance of [...]",
-                                  "vry_low" = "Very low chance of [...]",
-                                  "vry_small" = "Extremely small chance of [...]",
-                                  "prty_low" = "Pretty low chance of [...]",
-                                  "small" = "Small chance of [...]",
-                                  "remote" = "Remote chance of [...]",
-                                  "low" = "Low chance of [...]",
-                                  "slight" = "Slight chance of [...]",
-                                  "medium" = "Medium chance of [...]",
-                                  "moderate" = "Moderate chance of [...]",
-                                  "good" = "Good chance of [...]",
-                                  "large" = "Large chance of [...]",
-                                  "high" = "High chance of [...]",
-                                  "prty_high" = "Pretty high chance of [...]",
-                                  "vry_high" = "Very high chance of [...]",
-                                  "sig" = "Significant chance of [...]",
-                                  "ext_high" = "Extremely high chance of [...]"))
-    p <- cowplot::plot_grid(p1, p2, align = "v", ncol = 1, rel_heights = c(0.4, 1))
-    print(p)
-    }, height = 720)
-```
+<!-- renderPlot({ -->
+<!--     d1 <- words_data1[words_data1$prob_event == input$prob_event, ] -->
+<!--     p1 <- ggplot(d1, aes(x = key, y = value)) + -->
+<!--       geom_boxplot(aes(fill = key), alpha = 0.8, size = 0.3, outlier.size = -1) + -->
+<!--       guides(fill = FALSE, color = FALSE) + -->
+<!--       coord_flip() + -->
+<!--       labs(x = "", y = "Response (Percent)", title = "No Qualifying Expressions [WX18]") + -->
+<!--       theme_minimal() + -->
+<!--       theme(text = element_text(size = 16), -->
+<!--             plot.title = element_text(size = 14)) + -->
+<!--       scale_fill_viridis(discrete = TRUE) + -->
+<!--       scale_y_continuous(breaks = seq(0, 100, 10), labels = paste0(seq(0, 100, 10), "%")) + -->
+<!--       scale_x_discrete(labels = c("risk_chan" = "There is a chance of [...]", -->
+<!--                                   "risk_poss" = "[...] are possible", -->
+<!--                                   "risk_may" = "[...] may occur", -->
+<!--                                   "risk_exp" = "[...] are expected")) -->
+<!--     d2 <- words_data2[words_data2$prob_event == input$prob_event, ] -->
+<!--     p2 <- ggplot(d2, aes(x = key, y = value)) + -->
+<!--       geom_boxplot(aes(fill = key), alpha = 0.8, size = 0.3, outlier.size = -1) + -->
+<!--       guides(fill = FALSE, color = FALSE) + -->
+<!--       coord_flip() + -->
+<!--       labs(x = "", y = "Response (Percent)", title = "Qualifying Expressions [WX19]") + -->
+<!--       theme_minimal() + -->
+<!--       theme(text = element_text(size = 16), -->
+<!--             plot.title = element_text(size = 14)) + -->
+<!--       scale_fill_viridis(discrete = TRUE) + -->
+<!--       scale_y_continuous(breaks = seq(0, 100, 10), labels = paste0(seq(0, 100, 10), "%")) + -->
+<!--       scale_x_discrete(labels = c("ext_low" = "Extremely low chance of [...]", -->
+<!--                                   "vry_low" = "Very low chance of [...]", -->
+<!--                                   "vry_small" = "Extremely small chance of [...]", -->
+<!--                                   "prty_low" = "Pretty low chance of [...]", -->
+<!--                                   "small" = "Small chance of [...]", -->
+<!--                                   "remote" = "Remote chance of [...]", -->
+<!--                                   "low" = "Low chance of [...]", -->
+<!--                                   "slight" = "Slight chance of [...]", -->
+<!--                                   "medium" = "Medium chance of [...]", -->
+<!--                                   "moderate" = "Moderate chance of [...]", -->
+<!--                                   "good" = "Good chance of [...]", -->
+<!--                                   "large" = "Large chance of [...]", -->
+<!--                                   "high" = "High chance of [...]", -->
+<!--                                   "prty_high" = "Pretty high chance of [...]", -->
+<!--                                   "vry_high" = "Very high chance of [...]", -->
+<!--                                   "sig" = "Significant chance of [...]", -->
+<!--                                   "ext_high" = "Extremely high chance of [...]")) -->
+<!--     p <- cowplot::plot_grid(p1, p2, align = "v", ncol = 1, rel_heights = c(0.4, 1)) -->
+<!--     print(p) -->
+<!--     }, height = 720) -->
+<!-- ``` -->
 
-### Probability vs. Impact
-This experiment examines the relative influence of forecast storm intensity (impact) vs. probability on public judgement of tornado risk. The data come from WX17. Review the [reference report](http://risk.ou.edu/downloads/news/WX17-Reference-Report.pdf) for more information and complete question wording. Some key findings from this experiment include:
+<!-- ### Probability vs. Impact -->
+<!-- This experiment examines the relative influence of forecast storm intensity (impact) vs. probability on public judgement of tornado risk. The data come from WX17. Review the [reference report](http://risk.ou.edu/downloads/news/WX17-Reference-Report.pdf) for more information and complete question wording. Some key findings from this experiment include: -->
 
-  - Both forecast intensity and probability information affect public risk assessments.
-  - On average, people are slightly more sensitive to probability information than intensity information.
-  - Different groups of people use this information in different ways. For example, groups with high numeracy (risk literacy) are more likely to rely on information about intensity and probability when assessing risk than groups with low numeracy.
+<!--   - Both forecast intensity and probability information affect public risk assessments. -->
+<!--   - On average, people are slightly more sensitive to probability information than intensity information. -->
+<!--   - Different groups of people use this information in different ways. For example, groups with high numeracy (risk literacy) are more likely to rely on information about intensity and probability when assessing risk than groups with low numeracy. -->
 
-```{r}
-selectInput(inputId = 'neg_group', label = 'Select a grouping', choices = groups)
-```
+<!-- ```{r} -->
+<!-- selectInput(inputId = 'neg_group', label = 'Select a grouping', choices = groups) -->
+<!-- ``` -->
 
-We would like to know how YOU weigh the probability and intensity of extreme weather events. Please rate the risk of the following tornado scenarios: A [5:100]% chance of a [Light (EF-0)|Moderate (EF-1)|Significant (EF-2)|Severe (EF-3)|Devastating (EF-4)|Incredible (EF-5)] tornado.
+<!-- We would like to know how YOU weigh the probability and intensity of extreme weather events. Please rate the risk of the following tornado scenarios: A [5:100]% chance of a [Light (EF-0)|Moderate (EF-1)|Significant (EF-2)|Severe (EF-3)|Devastating (EF-4)|Incredible (EF-5)] tornado. -->
 
-```{r}
-exp_data <- survey_data %>% drop_na(extprob_a_prob)
-prop_data_long <- select(exp_data, p_id, extprob_a_prob, extprob_b_prob, extprob_c_prob) %>% pivot_longer(extprob_a_prob:extprob_c_prob, names_to = "Prob_Time", values_to = "Prob")
-int_data_long <- select(exp_data, extprob_a_int, extprob_b_int, extprob_c_int) %>% pivot_longer(extprob_a_int:extprob_c_int, names_to = "Int_Time", values_to = "Int")
-perc_data_long <- select(exp_data, extprob_a, extprob_b, extprob_c) %>% pivot_longer(extprob_a:extprob_c, names_to = "Perc_Time", values_to = "Perc")
-long_data <- bind_cols(prop_data_long, int_data_long, perc_data_long)
-long_data <- left_join(long_data, exp_data %>% select(p_id, data.frame(groups)$groups), by = "p_id")
-long_data$Int <- factor(long_data$Int, levels = c("a Light (EF-0)",
-                                                "a Moderate (EF-1)",
-                                                "a Significant (EF-2)",
-                                                "a Severe (EF-3)",
-                                                "a Devastating (EF-4)",
-                                                "an Incredible (EF-5)"),
-                        labels = 0:5)
+<!-- ```{r} -->
+<!-- exp_data <- survey_data %>% drop_na(extprob_a_prob) -->
+<!-- prop_data_long <- select(exp_data, p_id, extprob_a_prob, extprob_b_prob, extprob_c_prob) %>% pivot_longer(extprob_a_prob:extprob_c_prob, names_to = "Prob_Time", values_to = "Prob") -->
+<!-- int_data_long <- select(exp_data, extprob_a_int, extprob_b_int, extprob_c_int) %>% pivot_longer(extprob_a_int:extprob_c_int, names_to = "Int_Time", values_to = "Int") -->
+<!-- perc_data_long <- select(exp_data, extprob_a, extprob_b, extprob_c) %>% pivot_longer(extprob_a:extprob_c, names_to = "Perc_Time", values_to = "Perc") -->
+<!-- long_data <- bind_cols(prop_data_long, int_data_long, perc_data_long) -->
+<!-- long_data <- left_join(long_data, exp_data %>% select(p_id, data.frame(groups)$groups), by = "p_id") -->
+<!-- long_data$Int <- factor(long_data$Int, levels = c("a Light (EF-0)", -->
+<!--                                                 "a Moderate (EF-1)", -->
+<!--                                                 "a Significant (EF-2)", -->
+<!--                                                 "a Severe (EF-3)", -->
+<!--                                                 "a Devastating (EF-4)", -->
+<!--                                                 "an Incredible (EF-5)"), -->
+<!--                         labels = 0:5) -->
 
-long_data$Int <- as.numeric(as.character(long_data$Int))
+<!-- long_data$Int <- as.numeric(as.character(long_data$Int)) -->
 
-renderPlot({
-  p1 <- ggplot(long_data %>% drop_na(input$neg_group), aes_string(y = "Perc", x = "Int", color = input$neg_group)) +
-    geom_smooth(method = "lm") +
-    labs(x = "Forecast Intensity (EF-Scale)", y = "Mean Response (Risk Rating)") +
-    theme_minimal() +
-    theme(text = element_text(size = 18)) +
-    coord_cartesian(ylim = c(2.25, 4)) +
-    scale_color_viridis(discrete = TRUE)
-  p2 <- ggplot(long_data %>% drop_na(input$neg_group), aes_string(y = "Perc", x = "Prob", color = input$neg_group)) +
-    geom_smooth(method = "lm") +
-    labs(x = "Forecast Probability (Percent Chance)", y = "Mean Response (Risk Rating)") +
-    theme_minimal() +
-    theme(text = element_text(size = 18)) +
-    coord_cartesian(ylim = c(2.25, 4)) +
-    scale_color_viridis(discrete = TRUE)
-  p <- cowplot::plot_grid(p1, p2, align = "v", nrow = 1)
-  print(p)
-  }, height=700)
-```
+<!-- renderPlot({ -->
+<!--   p1 <- ggplot(long_data %>% drop_na(input$neg_group), aes_string(y = "Perc", x = "Int", color = input$neg_group)) + -->
+<!--     geom_smooth(method = "lm") + -->
+<!--     labs(x = "Forecast Intensity (EF-Scale)", y = "Mean Response (Risk Rating)") + -->
+<!--     theme_minimal() + -->
+<!--     theme(text = element_text(size = 18)) + -->
+<!--     coord_cartesian(ylim = c(2.25, 4)) + -->
+<!--     scale_color_viridis(discrete = TRUE) -->
+<!--   p2 <- ggplot(long_data %>% drop_na(input$neg_group), aes_string(y = "Perc", x = "Prob", color = input$neg_group)) + -->
+<!--     geom_smooth(method = "lm") + -->
+<!--     labs(x = "Forecast Probability (Percent Chance)", y = "Mean Response (Risk Rating)") + -->
+<!--     theme_minimal() + -->
+<!--     theme(text = element_text(size = 18)) + -->
+<!--     coord_cartesian(ylim = c(2.25, 4)) + -->
+<!--     scale_color_viridis(discrete = TRUE) -->
+<!--   p <- cowplot::plot_grid(p1, p2, align = "v", nrow = 1) -->
+<!--   print(p) -->
+<!--   }, height=700) -->
+<!-- ``` -->
 
-### Risk Categories
-This experiment examines public perceptions about the risk phrases (categories) that some forecasters use to communicate the probability of tornadoes. The data come from WX19. Review the [reference report](http://risk.ou.edu/downloads/news/WX19-Reference-Report.pdf) for more information and complete question wording. Some key findings from this experiment include:
+<!-- ### Risk Categories -->
+<!-- This experiment examines public perceptions about the risk phrases (categories) that some forecasters use to communicate the probability of tornadoes. The data come from WX19. Review the [reference report](http://risk.ou.edu/downloads/news/WX19-Reference-Report.pdf) for more information and complete question wording. Some key findings from this experiment include: -->
 
-  - Public perceptions of probability and risk are somewhat inconsistent with these risk categories.
-      - People may misinterpret forecast probability and risk if given a risk category alone with no more information.
-  - The most common sources of confusion are ***marginal vs. slight*** and ***enhanced vs. moderate*** risk.
-  - Different groups of people interpret probability and risk phrases in different ways.
+<!--   - Public perceptions of probability and risk are somewhat inconsistent with these risk categories. -->
+<!--       - People may misinterpret forecast probability and risk if given a risk category alone with no more information. -->
+<!--   - The most common sources of confusion are ***marginal vs. slight*** and ***enhanced vs. moderate*** risk. -->
+<!--   - Different groups of people interpret probability and risk phrases in different ways. -->
 
-```{r}
-selectInput(inputId = 'spc_group', label = 'Select a grouping', choices = groups)
-```
+<!-- ```{r} -->
+<!-- selectInput(inputId = 'spc_group', label = 'Select a grouping', choices = groups) -->
+<!-- ``` -->
 
-```{r}
-s <- reactive({
-  survey_data %>%
-  select(!!as.name(input$spc_group), risk_word, risk_perc) %>%
-  drop_na(!!as.name(input$spc_group), risk_word, risk_perc) %>%
-  gather(variable, value, -c(!!as.name(input$spc_group), risk_word)) %>%
-  mutate(cat = factor(risk_word,
-                      levels = c("SLIGHT RISK", "MODERATE RISK", "HIGH RISK"),
-                      labels = c("Slight", "Moderate", "High")))
-  })
+<!-- ```{r} -->
+<!-- s <- reactive({ -->
+<!--   survey_data %>% -->
+<!--   select(!!as.name(input$spc_group), risk_word, risk_perc) %>% -->
+<!--   drop_na(!!as.name(input$spc_group), risk_word, risk_perc) %>% -->
+<!--   gather(variable, value, -c(!!as.name(input$spc_group), risk_word)) %>% -->
+<!--   mutate(cat = factor(risk_word, -->
+<!--                       levels = c("SLIGHT RISK", "MODERATE RISK", "HIGH RISK"), -->
+<!--                       labels = c("Slight", "Moderate", "High"))) -->
+<!--   }) -->
 
-z <- reactive({
-  survey_data %>%
-    select(!!as.name(input$spc_group), spc_mar:spc_hig) %>%
-    gather(variable, value, -!!as.name(input$spc_group)) %>%
-    group_by(!!as.name(input$spc_group), variable, value) %>%
-    drop_na(!!as.name(input$spc_group), variable, value) %>%
-    summarise(n = n()) %>%
-    mutate(p = n/sum(n) * 100) %>%
-    mutate(rank = factor(value)) %>%
-    mutate(cat = factor(variable,
-                        levels = c("spc_mar", "spc_sli", "spc_enh", "spc_mod", "spc_hig"),
-                        labels = c("Marginal", "Slight", "Enhanced", "Moderate", "High")))
-  })
+<!-- z <- reactive({ -->
+<!--   survey_data %>% -->
+<!--     select(!!as.name(input$spc_group), spc_mar:spc_hig) %>% -->
+<!--     gather(variable, value, -!!as.name(input$spc_group)) %>% -->
+<!--     group_by(!!as.name(input$spc_group), variable, value) %>% -->
+<!--     drop_na(!!as.name(input$spc_group), variable, value) %>% -->
+<!--     summarise(n = n()) %>% -->
+<!--     mutate(p = n/sum(n) * 100) %>% -->
+<!--     mutate(rank = factor(value)) %>% -->
+<!--     mutate(cat = factor(variable, -->
+<!--                         levels = c("spc_mar", "spc_sli", "spc_enh", "spc_mod", "spc_hig"), -->
+<!--                         labels = c("Marginal", "Slight", "Enhanced", "Moderate", "High"))) -->
+<!--   }) -->
 
-renderPlot({
-  p1 <- ggplot(s(), aes_string(x = "cat", y = "value", color = input$spc_group)) +
-    stat_summary(size = 1.5, position = position_dodge(width = 0.5)) +
-    labs(y = "Mean Response", x = "SPC Risk Category") +
-    theme_minimal() +
-    theme(text = element_text(size = 18),
-          plot.title = element_text(size = 16)) +
-    scale_color_viridis(discrete = TRUE) +
-    coord_cartesian(ylim = c(0, 60)) +
-    coord_flip() +
-    ggtitle("If there is a [SLIGHT|MODERATE|HIGH] risk of tornadoes in your area tomorrow evening, how likely is it that a tornado will hit within 25 miles of your residence?\n") +
-    theme(plot.title = element_text(color = "grey30"))
-    p2 <- ggplot(z(), aes(x = cat, y = p, fill = rank)) +
-    geom_bar(stat = "identity", position = position_dodge()) +
-    labs(y = "Respondents (%)", x = "SPC Risk Category", fill = "Ranking") +
-    theme_minimal() +
-    theme(text = element_text(size = 18),
-          plot.title = element_text(size = 16 )) +
-    scale_fill_viridis(discrete = TRUE) +
-    facet_wrap(as.formula(paste("~", input$spc_group))) +
-    ggtitle("Can you rank these phrases from one (lowest risk) to five (highest risk)?\n") +
-    theme(plot.title = element_text(color = "grey30"))
-  p <- cowplot::plot_grid(p1, p2, align = "v", ncol = 1)
-  print(p)
-  }, height=750)
-```
+<!-- renderPlot({ -->
+<!--   p1 <- ggplot(s(), aes_string(x = "cat", y = "value", color = input$spc_group)) + -->
+<!--     stat_summary(size = 1.5, position = position_dodge(width = 0.5)) + -->
+<!--     labs(y = "Mean Response", x = "SPC Risk Category") + -->
+<!--     theme_minimal() + -->
+<!--     theme(text = element_text(size = 18), -->
+<!--           plot.title = element_text(size = 16)) + -->
+<!--     scale_color_viridis(discrete = TRUE) + -->
+<!--     coord_cartesian(ylim = c(0, 60)) + -->
+<!--     coord_flip() + -->
+<!--     ggtitle("If there is a [SLIGHT|MODERATE|HIGH] risk of tornadoes in your area tomorrow evening, how likely is it that a tornado will hit within 25 miles of your residence?\n") + -->
+<!--     theme(plot.title = element_text(color = "grey30")) -->
+<!--     p2 <- ggplot(z(), aes(x = cat, y = p, fill = rank)) + -->
+<!--     geom_bar(stat = "identity", position = position_dodge()) + -->
+<!--     labs(y = "Respondents (%)", x = "SPC Risk Category", fill = "Ranking") + -->
+<!--     theme_minimal() + -->
+<!--     theme(text = element_text(size = 18), -->
+<!--           plot.title = element_text(size = 16 )) + -->
+<!--     scale_fill_viridis(discrete = TRUE) + -->
+<!--     facet_wrap(as.formula(paste("~", input$spc_group))) + -->
+<!--     ggtitle("Can you rank these phrases from one (lowest risk) to five (highest risk)?\n") + -->
+<!--     theme(plot.title = element_text(color = "grey30")) -->
+<!--   p <- cowplot::plot_grid(p1, p2, align = "v", ncol = 1) -->
+<!--   print(p) -->
+<!--   }, height=750) -->
+<!-- ``` -->
 
-### Warning Perceptions & Preferences
-This experiment explores public perceptions and preferences about common trade offs that forecasters make when issuing warnings. The data come from WX17. Review the [reference report](http://risk.ou.edu/downloads/news/WX17-Reference-Report.pdf) for more information and complete question wording. Some key findings from this experiment include:
+<!-- ### Warning Perceptions & Preferences -->
+<!-- This experiment explores public perceptions and preferences about common trade offs that forecasters make when issuing warnings. The data come from WX17. Review the [reference report](http://risk.ou.edu/downloads/news/WX17-Reference-Report.pdf) for more information and complete question wording. Some key findings from this experiment include: -->
 
-  - People generally agree with the ways that forecasters are balancing trade offs.
-  - On average, people seem to value:
-      - Event detection and warning at the possible expense of more false alarms.
-      - Forecast accuracy at the possible expense of less notice (lead time).
-      - More information at the possible expense of too much complexity.
+<!--   - People generally agree with the ways that forecasters are balancing trade offs. -->
+<!--   - On average, people seem to value: -->
+<!--       - Event detection and warning at the possible expense of more false alarms. -->
+<!--       - Forecast accuracy at the possible expense of less notice (lead time). -->
+<!--       - More information at the possible expense of too much complexity. -->
 
-```{r}
-selectInput(inputId = 'trade_group', label = 'Select a grouping', choices = groups)
-```
+<!-- ```{r} -->
+<!-- selectInput(inputId = 'trade_group', label = 'Select a grouping', choices = groups) -->
+<!-- ``` -->
 
-```{r}
-a <- reactive({
-  survey_data %>%
-    select(!!as.name(input$trade_group), mi_fa_should:mi_fa_do) %>%
-    gather(variable, value, -!!as.name(input$trade_group)) %>%
-    group_by(!!as.name(input$trade_group), variable, value) %>%
-    drop_na(!!as.name(input$trade_group), variable, value) %>%
-    summarise(n = n()) %>%
-    mutate(p = n/sum(n) * 100) %>%
-    ungroup() %>%
-    mutate(ques = factor(variable, labels = c("What DO forecasters do?", "What SHOULD forecasters do?"))) %>%
-    mutate(resp = factor(value, labels = c("Minimize the possibility that a tornado\nwill occur without a warning",
-                                         "Lean towards limiting the possibility that\na tornado will occur without a warning",
-                                         "Lean towards limiting the possibility of false alarms",
-                                         "Minimize the possibility of false alarms")))
-  })
+<!-- ```{r} -->
+<!-- a <- reactive({ -->
+<!--   survey_data %>% -->
+<!--     select(!!as.name(input$trade_group), mi_fa_should:mi_fa_do) %>% -->
+<!--     gather(variable, value, -!!as.name(input$trade_group)) %>% -->
+<!--     group_by(!!as.name(input$trade_group), variable, value) %>% -->
+<!--     drop_na(!!as.name(input$trade_group), variable, value) %>% -->
+<!--     summarise(n = n()) %>% -->
+<!--     mutate(p = n/sum(n) * 100) %>% -->
+<!--     ungroup() %>% -->
+<!--     mutate(ques = factor(variable, labels = c("What DO forecasters do?", "What SHOULD forecasters do?"))) %>% -->
+<!--     mutate(resp = factor(value, labels = c("Minimize the possibility that a tornado\nwill occur without a warning", -->
+<!--                                          "Lean towards limiting the possibility that\na tornado will occur without a warning", -->
+<!--                                          "Lean towards limiting the possibility of false alarms", -->
+<!--                                          "Minimize the possibility of false alarms"))) -->
+<!--   }) -->
 
-b <- reactive({
-  survey_data %>%
-    select(!!as.name(input$trade_group), leadtime_do:leadtime_should) %>%
-    gather(variable, value, -!!as.name(input$trade_group)) %>%
-    group_by(!!as.name(input$trade_group), variable, value) %>%
-    drop_na(!!as.name(input$trade_group), variable, value) %>%
-    summarise(n = n()) %>%
-    mutate(p = n/sum(n) * 100) %>%
-    ungroup() %>%
-    mutate(ques = factor(variable, labels = c("What DO forecasters do?", "What SHOULD forecasters do?"))) %>%
-    mutate(resp = factor(value, labels = c("Maximize lead time",
-                                         "Lean towards more lead time",
-                                         "Lean towards more precision/accuracy",
-                                         "Maximize precision/accuracy")))
-  })
+<!-- b <- reactive({ -->
+<!--   survey_data %>% -->
+<!--     select(!!as.name(input$trade_group), leadtime_do:leadtime_should) %>% -->
+<!--     gather(variable, value, -!!as.name(input$trade_group)) %>% -->
+<!--     group_by(!!as.name(input$trade_group), variable, value) %>% -->
+<!--     drop_na(!!as.name(input$trade_group), variable, value) %>% -->
+<!--     summarise(n = n()) %>% -->
+<!--     mutate(p = n/sum(n) * 100) %>% -->
+<!--     ungroup() %>% -->
+<!--     mutate(ques = factor(variable, labels = c("What DO forecasters do?", "What SHOULD forecasters do?"))) %>% -->
+<!--     mutate(resp = factor(value, labels = c("Maximize lead time", -->
+<!--                                          "Lean towards more lead time", -->
+<!--                                          "Lean towards more precision/accuracy", -->
+<!--                                          "Maximize precision/accuracy"))) -->
+<!--   }) -->
 
-e <- reactive({
-  survey_data %>%
-    select(!!as.name(input$trade_group), uncert_do:uncert_should) %>%
-    gather(variable, value, -!!as.name(input$trade_group)) %>%
-    group_by(!!as.name(input$trade_group), variable, value) %>%
-    drop_na(!!as.name(input$trade_group), variable, value) %>%
-    summarise(n = n()) %>%
-    mutate(p = n/sum(n) * 100) %>%
-    ungroup() %>%
-    mutate(ques = factor(variable, labels = c("What DO forecasters do?", "What SHOULD forecasters do?"))) %>%
-    mutate(resp = factor(value, labels = c("Maximize simplicity",
-                                         "Lean towards simplicity",
-                                         "Lean towards more information",
-                                         "Maximize information")))
-  })
+<!-- e <- reactive({ -->
+<!--   survey_data %>% -->
+<!--     select(!!as.name(input$trade_group), uncert_do:uncert_should) %>% -->
+<!--     gather(variable, value, -!!as.name(input$trade_group)) %>% -->
+<!--     group_by(!!as.name(input$trade_group), variable, value) %>% -->
+<!--     drop_na(!!as.name(input$trade_group), variable, value) %>% -->
+<!--     summarise(n = n()) %>% -->
+<!--     mutate(p = n/sum(n) * 100) %>% -->
+<!--     ungroup() %>% -->
+<!--     mutate(ques = factor(variable, labels = c("What DO forecasters do?", "What SHOULD forecasters do?"))) %>% -->
+<!--     mutate(resp = factor(value, labels = c("Maximize simplicity", -->
+<!--                                          "Lean towards simplicity", -->
+<!--                                          "Lean towards more information", -->
+<!--                                          "Maximize information"))) -->
+<!--   }) -->
 
-renderPlot({
-  p1 <- ggplot(a(), aes_string(x = "p", y = "resp", color = input$trade_group)) +
-    geom_point(size = 8) +
-    labs(x = "Respondents (%)", y = "") +
-    theme_minimal() +
-    theme(text = element_text(size = 18),
-          plot.title = element_text(size = 14)) +
-    scale_color_viridis(discrete = TRUE) +
-    facet_wrap(~ques) +
-    xlim(0, 50) +
-    ggtitle("How [DO|SHOULD] forecasters in your area balance the possibility of false alarms vs.the possibility that a tornado will occur without a warning?\n") +
-    theme(plot.title = element_text(color = "grey30"))
-  p2 <- ggplot(b(), aes_string(x = "p", y = "resp", color = input$trade_group)) +
-    geom_point(size = 8) +
-    labs(x = "Respondents (%)", y = "") +
-    theme_minimal() +
-    theme(text = element_text(size = 18),
-          plot.title = element_text(size = 14)) +
-    scale_color_viridis(discrete = TRUE) +
-    facet_wrap(~ques) +
-    xlim(0, 50) +
-    ggtitle("How [DO|SHOULD] forecasters in your area balance considerations of lead time vs. accuracy?\n") +
-    theme(plot.title = element_text(color = "grey30"))
-  p3 <- ggplot(e(), aes_string(x = "p", y = "resp", color = input$trade_group)) +
-    geom_point(size = 8) +
-    labs(x = "Respondents (%)", y = "") +
-    theme_minimal() +
-    theme(text = element_text(size = 18),
-          plot.title = element_text(size = 14)) +
-    scale_color_viridis(discrete = TRUE) +
-    facet_wrap(~ques) +
-    xlim(0, 50) +
-    ggtitle("How [DO|SHOULD] forecasters in your area balance considerations of simplicity vs. more information?\n") +
-    theme(plot.title = element_text(color = "grey30"))
-  p <- cowplot::plot_grid(p1, p2, p3, align = "v", ncol = 1)
-  print(p)
-  }, height=750)
-```
+<!-- renderPlot({ -->
+<!--   p1 <- ggplot(a(), aes_string(x = "p", y = "resp", color = input$trade_group)) + -->
+<!--     geom_point(size = 8) + -->
+<!--     labs(x = "Respondents (%)", y = "") + -->
+<!--     theme_minimal() + -->
+<!--     theme(text = element_text(size = 18), -->
+<!--           plot.title = element_text(size = 14)) + -->
+<!--     scale_color_viridis(discrete = TRUE) + -->
+<!--     facet_wrap(~ques) + -->
+<!--     xlim(0, 50) + -->
+<!--     ggtitle("How [DO|SHOULD] forecasters in your area balance the possibility of false alarms vs.the possibility that a tornado will occur without a warning?\n") + -->
+<!--     theme(plot.title = element_text(color = "grey30")) -->
+<!--   p2 <- ggplot(b(), aes_string(x = "p", y = "resp", color = input$trade_group)) + -->
+<!--     geom_point(size = 8) + -->
+<!--     labs(x = "Respondents (%)", y = "") + -->
+<!--     theme_minimal() + -->
+<!--     theme(text = element_text(size = 18), -->
+<!--           plot.title = element_text(size = 14)) + -->
+<!--     scale_color_viridis(discrete = TRUE) + -->
+<!--     facet_wrap(~ques) + -->
+<!--     xlim(0, 50) + -->
+<!--     ggtitle("How [DO|SHOULD] forecasters in your area balance considerations of lead time vs. accuracy?\n") + -->
+<!--     theme(plot.title = element_text(color = "grey30")) -->
+<!--   p3 <- ggplot(e(), aes_string(x = "p", y = "resp", color = input$trade_group)) + -->
+<!--     geom_point(size = 8) + -->
+<!--     labs(x = "Respondents (%)", y = "") + -->
+<!--     theme_minimal() + -->
+<!--     theme(text = element_text(size = 18), -->
+<!--           plot.title = element_text(size = 14)) + -->
+<!--     scale_color_viridis(discrete = TRUE) + -->
+<!--     facet_wrap(~ques) + -->
+<!--     xlim(0, 50) + -->
+<!--     ggtitle("How [DO|SHOULD] forecasters in your area balance considerations of simplicity vs. more information?\n") + -->
+<!--     theme(plot.title = element_text(color = "grey30")) -->
+<!--   p <- cowplot::plot_grid(p1, p2, p3, align = "v", ncol = 1) -->
+<!--   print(p) -->
+<!--   }, height=750) -->
+<!-- ``` -->
 
-### Warning Time of Day
-This experiment explores the impact of time of day on tornado reception, understanding, and/or responsiveness. The data come from WX18 & WX19. Review the [reference report](http://risk.ou.edu/downloads/news/WX19-Reference-Report.pdf) for more information and complete question wording. Some key findings from this experiment include:
+<!-- ### Warning Time of Day -->
+<!-- This experiment explores the impact of time of day on tornado reception, understanding, and/or responsiveness. The data come from WX18 & WX19. Review the [reference report](http://risk.ou.edu/downloads/news/WX19-Reference-Report.pdf) for more information and complete question wording. Some key findings from this experiment include: -->
 
-  - Time of day has a relatively strong impact on public confidence in warning reception, understanding, and response.
-  - Warning reception and response are especially sensitive to time of day.
-      - People are least confident that they with get and take protective action in response to tornado warnings in late evening and early morning hours.
+<!--   - Time of day has a relatively strong impact on public confidence in warning reception, understanding, and response. -->
+<!--   - Warning reception and response are especially sensitive to time of day. -->
+<!--       - People are least confident that they with get and take protective action in response to tornado warnings in late evening and early morning hours. -->
 
-```{r}
-survey_data$rand_morn <- paste(substr(as.character(survey_data$rand_morn), 2, 5), "AM")
-survey_data$rand_morn <- ifelse(survey_data$rand_morn == "NA AM", NA, survey_data$rand_morn)
-time_data <- bind_cols(survey_data %>%
-                 select(p_id, rec_morn, rec_aft, rec_eve) %>%
-                 gather(a, reception, -p_id),
-               survey_data %>%
-                 select(und_morn, und_aft, und_eve) %>%
-                 gather(b, comprehension),
-               survey_data %>%
-                 select(resp_morn, resp_aft, resp_eve) %>%
-                 gather(c, response),
-               survey_data %>%
-                 select(rand_morn, rand_aft, rand_eve) %>%
-                 gather(d, time)) %>%
-  select(-c(a, b, c, d)) %>%
-  mutate(time_fac = factor(time, levels = c(
-    "12:00 AM (midnight)", "1:00 AM", "2:00 AM", "3:00 AM", "4:00 AM", "5:00 AM", "6:00 AM",
-    "7:00 AM", "8:00 AM", "9:00 AM", "10:00 AM", "11:00 AM", "12:00 PM (noon)", "1:00 PM",
-    "2:00 PM", "3:00 PM", "4:00 PM", "5:00 PM", "6:00 PM", "7:00 PM", "8:00 PM", "9:00 PM",
-    "10:00 PM", "11:00 PM")))
+<!-- ```{r} -->
+<!-- survey_data$rand_morn <- paste(substr(as.character(survey_data$rand_morn), 2, 5), "AM") -->
+<!-- survey_data$rand_morn <- ifelse(survey_data$rand_morn == "NA AM", NA, survey_data$rand_morn) -->
+<!-- time_data <- bind_cols(survey_data %>% -->
+<!--                  select(p_id, rec_morn, rec_aft, rec_eve) %>% -->
+<!--                  gather(a, reception, -p_id), -->
+<!--                survey_data %>% -->
+<!--                  select(und_morn, und_aft, und_eve) %>% -->
+<!--                  gather(b, comprehension), -->
+<!--                survey_data %>% -->
+<!--                  select(resp_morn, resp_aft, resp_eve) %>% -->
+<!--                  gather(c, response), -->
+<!--                survey_data %>% -->
+<!--                  select(rand_morn, rand_aft, rand_eve) %>% -->
+<!--                  gather(d, time)) %>% -->
+<!--   select(-c(a, b, c, d)) %>% -->
+<!--   mutate(time_fac = factor(time, levels = c( -->
+<!--     "12:00 AM (midnight)", "1:00 AM", "2:00 AM", "3:00 AM", "4:00 AM", "5:00 AM", "6:00 AM", -->
+<!--     "7:00 AM", "8:00 AM", "9:00 AM", "10:00 AM", "11:00 AM", "12:00 PM (noon)", "1:00 PM", -->
+<!--     "2:00 PM", "3:00 PM", "4:00 PM", "5:00 PM", "6:00 PM", "7:00 PM", "8:00 PM", "9:00 PM", -->
+<!--     "10:00 PM", "11:00 PM"))) -->
 
-sliderInput(inputId = 'time_group', label = 'Select an hour of the day', min = 0, max = 23, value = 12)
-```
+<!-- sliderInput(inputId = 'time_group', label = 'Select an hour of the day', min = 0, max = 23, value = 12) -->
+<!-- ``` -->
 
-For some people the time of day influences tornado warning reception, understanding, and/or responsiveness. If a tornado WARNING were issued for your area tomorrow at [TIME], how confident are you that you would [receive|understand|take protective action in response to] the warning?
+<!-- For some people the time of day influences tornado warning reception, understanding, and/or responsiveness. If a tornado WARNING were issued for your area tomorrow at [TIME], how confident are you that you would [receive|understand|take protective action in response to] the warning? -->
 
-```{r}
-time_data_group_rec <- time_data %>%
-  group_by(time_fac, reception) %>%
-  drop_na(time_fac, reception) %>%
-    summarise(n = n()) %>%
-    mutate(p = n/sum(n) * 100) %>%
-  ungroup() %>%
-  mutate(time_num = rep(0:23, each = 5)) %>%
-  mutate(l = paste0(round(p, 1), "%")) %>%
-  mutate(variable = "Receive") %>%
-  mutate(value = reception)
+<!-- ```{r} -->
+<!-- time_data_group_rec <- time_data %>% -->
+<!--   group_by(time_fac, reception) %>% -->
+<!--   drop_na(time_fac, reception) %>% -->
+<!--     summarise(n = n()) %>% -->
+<!--     mutate(p = n/sum(n) * 100) %>% -->
+<!--   ungroup() %>% -->
+<!--   mutate(time_num = rep(0:23, each = 5)) %>% -->
+<!--   mutate(l = paste0(round(p, 1), "%")) %>% -->
+<!--   mutate(variable = "Receive") %>% -->
+<!--   mutate(value = reception) -->
 
-time_data_group_comp <- time_data %>%
-  group_by(time_fac, comprehension) %>%
-  drop_na(time_fac, comprehension) %>%
-    summarise(n = n()) %>%
-    mutate(p = n/sum(n) * 100) %>%
-  ungroup() %>%
-  mutate(time_num = rep(0:23, each = 5)) %>%
-  mutate(l = paste0(round(p, 1), "%")) %>%
-  mutate(variable = "Understand") %>%
-  mutate(value = comprehension)
+<!-- time_data_group_comp <- time_data %>% -->
+<!--   group_by(time_fac, comprehension) %>% -->
+<!--   drop_na(time_fac, comprehension) %>% -->
+<!--     summarise(n = n()) %>% -->
+<!--     mutate(p = n/sum(n) * 100) %>% -->
+<!--   ungroup() %>% -->
+<!--   mutate(time_num = rep(0:23, each = 5)) %>% -->
+<!--   mutate(l = paste0(round(p, 1), "%")) %>% -->
+<!--   mutate(variable = "Understand") %>% -->
+<!--   mutate(value = comprehension) -->
 
-time_data_group_resp <- time_data %>%
-  group_by(time_fac, response) %>%
-  drop_na(time_fac, response) %>%
-    summarise(n = n()) %>%
-    mutate(p = n/sum(n) * 100) %>%
-  ungroup() %>%
-  mutate(time_num = rep(0:23, each = 5)) %>%
-  mutate(l = paste0(round(p, 1), "%")) %>%
-  mutate(variable = "Take Protective Action") %>%
-  mutate(value = response)
+<!-- time_data_group_resp <- time_data %>% -->
+<!--   group_by(time_fac, response) %>% -->
+<!--   drop_na(time_fac, response) %>% -->
+<!--     summarise(n = n()) %>% -->
+<!--     mutate(p = n/sum(n) * 100) %>% -->
+<!--   ungroup() %>% -->
+<!--   mutate(time_num = rep(0:23, each = 5)) %>% -->
+<!--   mutate(l = paste0(round(p, 1), "%")) %>% -->
+<!--   mutate(variable = "Take Protective Action") %>% -->
+<!--   mutate(value = response) -->
 
-time_data_group <- bind_rows(time_data_group_rec, time_data_group_comp, time_data_group_resp)
-time_data_group$variable <- factor(time_data_group$variable, levels = c("Receive", "Understand", "Take Protective Action"))
+<!-- time_data_group <- bind_rows(time_data_group_rec, time_data_group_comp, time_data_group_resp) -->
+<!-- time_data_group$variable <- factor(time_data_group$variable, levels = c("Receive", "Understand", "Take Protective Action")) -->
 
-q <- reactive({
-  time_data_group %>%
-    filter(time_num == input$time_group)
-    })
+<!-- q <- reactive({ -->
+<!--   time_data_group %>% -->
+<!--     filter(time_num == input$time_group) -->
+<!--     }) -->
 
-renderPlot({
-  p <- ggplot(q(), aes_string(x = "value", y = "p", label = "l", fill = "variable")) +
-    geom_bar(stat = "identity") +
-    geom_text(size = 6, vjust = -0.2, color = "black") +
-    labs(y = "Respondents (%)", x = "") +
-    theme_minimal() +
-    theme(text = element_text(size = 18),
-          plot.title = element_text(size = 14),
-          axis.text.x = element_text(size = 12)) +
-    ggtitle(q()$time_fac) +
-    ylim(0, 45) +
-    theme(plot.title = element_text(color = "grey30")) +
-    scale_fill_viridis(discrete = TRUE) +
-    facet_wrap(~variable) +
-    guides(fill = FALSE) +
-    scale_x_continuous(breaks = 1:5, labels = c("Not at all\nconfident", "Not very\nconfident", "Somewhat\nconfident", "Very\nconfident", "Extremely\nconfident"))
-  print(p)
-  }, height=700)
-```
-
+<!-- renderPlot({ -->
+<!--   p <- ggplot(q(), aes_string(x = "value", y = "p", label = "l", fill = "variable")) + -->
+<!--     geom_bar(stat = "identity") + -->
+<!--     geom_text(size = 6, vjust = -0.2, color = "black") + -->
+<!--     labs(y = "Respondents (%)", x = "") + -->
+<!--     theme_minimal() + -->
+<!--     theme(text = element_text(size = 18), -->
+<!--           plot.title = element_text(size = 14), -->
+<!--           axis.text.x = element_text(size = 12)) + -->
+<!--     ggtitle(q()$time_fac) + -->
+<!--     ylim(0, 45) + -->
+<!--     theme(plot.title = element_text(color = "grey30")) + -->
+<!--     scale_fill_viridis(discrete = TRUE) + -->
+<!--     facet_wrap(~variable) + -->
+<!--     guides(fill = FALSE) + -->
+<!--     scale_x_continuous(breaks = 1:5, labels = c("Not at all\nconfident", "Not very\nconfident", "Somewhat\nconfident", "Very\nconfident", "Extremely\nconfident")) -->
+<!--   print(p) -->
+<!--   }, height=700) -->
+<!-- ``` -->
 
 Explore Survey
 ======================================================================
@@ -1066,7 +1073,7 @@ Sidebar {.sidebar data-width=300}
 ```{r}
 ts_data <- survey_data %>%
   select(data.frame(groups)$groups, follow:risk_fire, alert_und, nws_trust:wx_info8, tor_map_und:svr_watchwarn_und, rec_all:rec_large_group, rec_stream,
-         resp_ignore:resp_large_group, resep_stream, wthr_info_paper:wthr_info_phone, rq_1:rq_10, recep, subj_comp, obj_comp, resp, ready)
+         resp_ignore:resp_large_group, resep_stream, wthr_info_paper:wthr_info_phone, rq_1:rq_10, to_recep, to_subj_comp, to_obj_comp, to_resp, all_ready)
 selectInput(inputId = 'ts_group', label = 'Select a grouping', choices = groups)
 checkboxInput(inputId = 'scale', label = 'Show text full y-scale?', value = FALSE)
 ```

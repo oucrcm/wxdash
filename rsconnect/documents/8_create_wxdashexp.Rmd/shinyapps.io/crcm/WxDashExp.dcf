@@ -5,8 +5,9 @@ account: crcm
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 1794586
-bundleId: 4051237
+bundleId: 6225666
 url: https://crcm.shinyapps.io/WxDashExp/
-when: 1609614294.09518
+when: 1661176965.89482
+lastSyncTime: 1661176965.89483
 asMultiple: FALSE
 asStatic: FALSE

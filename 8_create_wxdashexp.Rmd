@@ -13,10 +13,10 @@ runtime: shiny
 output:
   flexdashboard::flex_dashboard:
     orientation: rows
+    vertical_layout: fill
     # social: menu
     source_code: "https://github.com/oucrcm/wxdash"
     theme: simplex
-    vertical_layout: scroll
 ---
 
 <head>
@@ -40,6 +40,7 @@ library(tidyverse)
 library(shiny)
 library(viridis)
 library(RColorBrewer)
+library(miniUI)
 map <- readOGR("outputs/cwa_estimates")
 map@data <- map@data %>%
   mutate_at(vars(TO_RECEP:DROUGHT), funs(pnorm(.) * 100)) # convert z-scores to percentile ranks
@@ -84,7 +85,7 @@ variable_data <- read_csv("variable_data_live.csv")
 Composite Scales
 ======================================================================
 
-Sidebar {.sidebar data-width=300}
+Sidebar{.sidebar data-width=300}
 -----------------------------------------------------------------------
 <br/>
 <br/>
@@ -99,13 +100,16 @@ Sidebar {.sidebar data-width=300}
 <br/>
 Contact [Joe Ripberger](mailto:jtr@ou.edu) or [Carol Silva](mailto:clsilva@ou.edu) if you have questions about the data or project.
 
-Row{.tabset}
+Row {data-height=500}{.tabset .tabset-fade}
 -----------------------------------------------------------------------
 
+#### Estimates by County Warning Area (CWA)
+
 ### Severe
+
 ```{r}
 div(style = "font-size: 11px",
-    selectInput(inputId = 'variable',
+    selectInput(inputId = 'to_variable',
                 label = 'Select composite measure to explore',
                 choices = c('Tornado Warning Reception' = 'TO_RECEP',
                             'Tornado Warning Comprehension (Subjective)' = 'TO_SUB_COM',
@@ -119,12 +123,64 @@ div(style = "font-size: 11px",
 variable_map_cols <- viridis(100)
 variable_map_pal <- colorNumeric(palette = variable_map_cols, domain = c(30, 70))
 
-output$map <- renderLeaflet({
-  map$variableplot <- map@data[, input$variable]
+output$to_map <- renderLeaflet({
+  map$variableplot <- map@data[, input$to_variable]
   p_popup <- with(map@data, paste0("NWS ", City, ", ", ST, " (", CWA,")", "<br>", 
                                    "Percentile rank of the average person in the CWA: ", round(variableplot, 2), "<br>",
                                    "Percentile rank of the CWA: ", round(pnorm(scale(variableplot)) * 100, 2)))
-  l <- leaflet(map) %>%
+  to_map <- leaflet(map) %>%
+    setView(lng = -97, lat = 40, zoom = 4) %>% 
+    # addFullscreenControl() %>% 
+    addTiles(options = providerTileOptions(minZoom = 4, maxZoom = 10)) %>%
+    clearShapes() %>%
+    addPolygons(
+      fillColor = ~variable_map_pal(variableplot),
+      highlight = highlightOptions(weight = 5, color = "grey", fillOpacity = 0.9, bringToFront = TRUE),
+      color = "white",
+      fillOpacity = 0.9,
+      stroke = TRUE,
+      smoothFactor = 0.8,
+      weight = 2,
+      popup = p_popup,
+      layerId = ~CWA) %>% 
+    # addFullscreenControl(pseudoFullscreen = TRUE) %>% 
+    addLegend(position = 'bottomright', pal = variable_map_pal, values = ~variableplot, opacity = 0.7, title = "Mean<br>Percentile<br>Rank")
+  })
+
+miniContentPanel(leafletOutput(outputId = "to_map"), padding = c(0, 0, 75, 0), scrollable = TRUE)
+
+click_tract <- eventReactive(input$map_shape_click, {
+    x <- input$map_shape_click
+    y <- x$id
+    return(y)
+  })
+
+tract_data <- reactive({
+    # Fetch data for the clicked tract
+    return(map@data[map@data$CWA == click_tract(), ])
+  })
+```
+
+### Tropical
+
+```{r}
+div(style = "font-size: 11px",
+    selectInput(inputId = 'hu_variable',
+                label = 'Select composite measure to explore',
+                choices = c('Hurricane Warning Reception' = 'HU_RECEP',
+                            'Hurricane Warning Comprehension (Subjective)' = 'HU_SUB_COM',
+                            'Hurricane Warning Comprehension (Objective)' = 'HU_OBJ_COM',
+                            'Hurricane Warning Response' = 'HU_RESP'))
+    )
+```
+
+```{r}
+output$map <- renderLeaflet({
+  map$variableplot <- map@data[, input$hu_variable]
+  p_popup <- with(map@data, paste0("NWS ", City, ", ", ST, " (", CWA,")", "<br>", 
+                                   "Percentile rank of the average person in the CWA: ", round(variableplot, 2), "<br>",
+                                   "Percentile rank of the CWA: ", round(pnorm(scale(variableplot)) * 100, 2)))
+  map <- leaflet(map) %>%
     setView(lng = -97, lat = 40, zoom = 4) %>% 
     addFullscreenControl() %>% 
     addTiles(options = providerTileOptions(minZoom = 4, maxZoom = 10)) %>%
@@ -142,7 +198,7 @@ output$map <- renderLeaflet({
     addLegend(position = 'bottomright', pal = variable_map_pal, values = ~variableplot, opacity = 0.7, title = "Mean<br>Percentile<br>Rank")
   })
 
-leafletOutput(outputId = "map")
+miniContentPanel(leafletOutput(outputId = "map"), padding = c(0, 0, 75, 0), scrollable = TRUE)
 
 click_tract <- eventReactive(input$map_shape_click, {
     x <- input$map_shape_click
@@ -156,47 +212,49 @@ tract_data <- reactive({
   })
 ```
 
-### Tropical
-
 ### Winter
 
 ### WRN
 
-Row
+Row {data-height=300}
 -----------------------------------------------------------------------
 
 ### Estimates by County (Click on a CWA in the Map Above)
+
 ```{r}
-# variable_map_cols <- viridis(100, option = "plasma")
-variable_map_cols <- viridis(100)
-variable_map_pal <- colorNumeric(palette = variable_map_cols, domain = c(30, 70))
 
-output$fips_map <- renderLeaflet({
-  map <- fips_map[fips_map$CWA == tract_data()[, 1], ]
-  map$variableplot <- map@data[, input$variable]
-  # variable_map_pal <- colorNumeric(palette = variable_map_cols, domain = c(min(map$variableplot), max(map$variableplot))) # MAKE COLORS RELATIVE WITHIN CWA
-  p_popup <- with(map@data, paste0(NAME, ", County ", "(", CWA, ")", "<br>",
-                                   "Percentile rank of the average person in the County: ", round(variableplot, 2), "<br>",
-                                   "Percentile rank of the County: ", round(pnorm(scale(variableplot)) * 100, 2)))
-  l <- leaflet(map) %>%
-    addFullscreenControl() %>%
-    addTiles(options = providerTileOptions(minZoom = 4, maxZoom = 10)) %>%
-    clearShapes() %>%
-    addPolygons(
-      fillColor = ~variable_map_pal(variableplot),
-      highlight = highlightOptions(weight = 5, color = "grey", fillOpacity = 0.9, bringToFront = TRUE),
-      color = "white",
-      fillOpacity = 0.9,
-      stroke = TRUE,
-      smoothFactor = 0.8,
-      weight = 2,
-      popup = p_popup,
-      layerId = ~FIPS) %>%
-    addLegend(position = 'bottomright', pal = variable_map_pal, values = ~variableplot, opacity = 0.7, title = "Mean<br>Percentile<br>Rank")
-  })
+# # variable_map_cols <- viridis(100, option = "plasma")
+# variable_map_cols <- viridis(100)
+# variable_map_pal <- colorNumeric(palette = variable_map_cols, domain = c(30, 70))
+# 
+# output$fips_map <- renderLeaflet({
+#   fips_map <- fips_map[fips_map$CWA == tract_data()[, 1], ]
+#   map$variableplot <- map@data[, input$variable]
+#   # variable_map_pal <- colorNumeric(palette = variable_map_cols, domain = c(min(map$variableplot), max(map$variableplot))) # MAKE COLORS RELATIVE WITHIN CWA
+#   p_popup <- with(map@data, paste0(NAME, ", County ", "(", CWA, ")", "<br>",
+#                                    "Percentile rank of the average person in the County: ", round(variableplot, 2), "<br>",
+#                                    "Percentile rank of the County: ", round(pnorm(scale(variableplot)) * 100, 2)))
+#   fips_map <- leaflet(map) %>%
+#     addFullscreenControl() %>%
+#     addTiles(options = providerTileOptions(minZoom = 4, maxZoom = 10)) %>%
+#     clearShapes() %>%
+#     addPolygons(
+#       fillColor = ~variable_map_pal(variableplot),
+#       highlight = highlightOptions(weight = 5, color = "grey", fillOpacity = 0.9, bringToFront = TRUE),
+#       color = "white",
+#       fillOpacity = 0.9,
+#       stroke = TRUE,
+#       smoothFactor = 0.8,
+#       weight = 2,
+#       popup = p_popup,
+#       layerId = ~FIPS) %>%
+#     addLegend(position = 'bottomright', pal = variable_map_pal, values = ~variableplot, opacity = 0.7, title = "Mean<br>Percentile<br>Rank")
+#   })
+# 
+# leafletOutput(outputId = "fips_map")
 
-leafletOutput(outputId = "fips_map")
 ```
+
 
 ### Survey Questions
 
@@ -374,14 +432,14 @@ frequency_map_pal <- colorNumeric(palette = frequency_map_cols, domain = c(0, 10
 
 output$frequency_map <- renderLeaflet({
   col_num <- NA
-  col_num <- ifelse(input$event == "PER_HEA", 30, col_num)
-  col_num <- ifelse(input$event == "PER_DRO", 34, col_num)
-  col_num <- ifelse(input$event == "PER_COL", 27, col_num)
-  col_num <- ifelse(input$event == "PER_SNO", 32, col_num)
-  col_num <- ifelse(input$event == "PER_TOR", 33, col_num)
-  col_num <- ifelse(input$event == "PER_FLO", 29, col_num)
-  col_num <- ifelse(input$event == "PER_HUR", 31, col_num)
-  col_num <- ifelse(input$event == "PER_FIR", 28, col_num)
+  col_num <- ifelse(input$event == "PER_HEA", 33, col_num)
+  col_num <- ifelse(input$event == "PER_DRO", 37, col_num)
+  col_num <- ifelse(input$event == "PER_COL", 30, col_num)
+  col_num <- ifelse(input$event == "PER_SNO", 35, col_num)
+  col_num <- ifelse(input$event == "PER_TOR", 36, col_num)
+  col_num <- ifelse(input$event == "PER_FLO", 32, col_num)
+  col_num <- ifelse(input$event == "PER_HUR", 34, col_num)
+  col_num <- ifelse(input$event == "PER_FIR", 31, col_num)
   map$freqplot <- map@data[, col_num]
   p_popup <- with(map@data, paste0("NWS ", City, ", ", ST, " (", CWA,")", "<br>",
                                    "Percentile rank of the CWA: ", round(freqplot, 2)))
@@ -403,6 +461,44 @@ output$frequency_map <- renderLeaflet({
     addLegend(position = 'bottomright', pal = frequency_map_pal, values = ~freqplot, opacity = 0.7, title = "CWA<br>Percentile<br>Rank")
   })
 leafletOutput(outputId = "frequency_map")
+```
+
+### Subjective Risk Perceptions vs. Objective Event Frequency
+```{r}
+difference_map_cols <- viridis(100, option = "cividis")
+difference_map_pal <- colorNumeric(palette = difference_map_cols, domain = c(0, 100))
+
+output$difference_map <- renderLeaflet({
+  col_num <- NA
+  col_num <- ifelse(input$event == "PER_HEA", 33, col_num)
+  col_num <- ifelse(input$event == "PER_DRO", 37, col_num)
+  col_num <- ifelse(input$event == "PER_COL", 30, col_num)
+  col_num <- ifelse(input$event == "PER_SNO", 35, col_num)
+  col_num <- ifelse(input$event == "PER_TOR", 36, col_num)
+  col_num <- ifelse(input$event == "PER_FLO", 32, col_num)
+  col_num <- ifelse(input$event == "PER_HUR", 34, col_num)
+  col_num <- ifelse(input$event == "PER_FIR", 31, col_num)
+  map$freqplot <- map@data[, col_num]
+  p_popup <- with(map@data, paste0("NWS ", City, ", ", ST, " (", CWA,")", "<br>",
+                                   "Percentile rank of the CWA: ", round(freqplot, 2)))
+  l <- leaflet(map) %>%
+    setView(lng = -97, lat = 40, zoom = 3) %>% 
+    addTiles(options = providerTileOptions(minZoom = 3, maxZoom = 10)) %>%
+    addFullscreenControl() %>% 
+    clearShapes() %>%
+    addPolygons(
+      fillColor = ~difference_map_pal(freqplot),
+      color = "white",
+      fillOpacity = 0.9,
+      stroke = TRUE,
+      smoothFactor = 0.8,
+      weight = 0.5,
+      popup = p_popup,
+      layerId = ~CWA,
+      highlight = highlightOptions(weight = 5, color = "grey", fillOpacity = 0.9, bringToFront = TRUE)) %>%
+    addLegend(position = 'bottomright', pal = difference_map_pal, values = ~freqplot, opacity = 0.7, title = "CWA<br>Percentile<br>Rank")
+  })
+leafletOutput(outputId = "difference_map")
 ```
 
 Row
@@ -428,7 +524,7 @@ renderPlot({
                color = "blue", fill = "blue", alpha = 0.3, size = 20) +
     geom_text(aes(label = CWA)) +
     labs(x = "Objective Event Frequency", y = "Subjective Risk Perceptions", title = input$cwa) +
-    theme_minimal() +
+    theme_classic() +
     theme(text = element_text(size = 20))
   print(p)
   })
@@ -499,7 +595,7 @@ y <- reactive({
 renderPlot({
   p1 <- ggplot(x(), aes_string(x = "Source", y = "value", color = input$att, group = input$att, label = "l")) +
     geom_point(size = 9, position = position_dodge(width = 0.7)) +
-    theme_minimal() +
+    theme_classic() +
     theme(text = element_text(size = 18),
           plot.title = element_text(size = 18)) +
     labs(x = "Source", y = "Respondents (%)") +
@@ -508,7 +604,7 @@ renderPlot({
     scale_color_viridis(discrete = TRUE)
   p2 <- ggplot(y(), aes_string(x = "Source", y = "value", color = input$att, group = input$att, label = "l")) +
     geom_point(size = 9, position = position_dodge(width = 0.7)) +
-    theme_minimal() +
+    theme_classic() +
     theme(text = element_text(size = 18),
           plot.title = element_text(size = 18)) +
     labs(x = "", y = "Mean Response") +
@@ -595,7 +691,7 @@ renderPlot({
 <!--       guides(fill = FALSE, color = FALSE) + -->
 <!--       coord_flip() + -->
 <!--       labs(x = "", y = "Response (Percent)", title = "No Qualifying Expressions [WX18]") + -->
-<!--       theme_minimal() + -->
+<!--       theme_classic() + -->
 <!--       theme(text = element_text(size = 16), -->
 <!--             plot.title = element_text(size = 14)) + -->
 <!--       scale_fill_viridis(discrete = TRUE) + -->
@@ -610,7 +706,7 @@ renderPlot({
 <!--       guides(fill = FALSE, color = FALSE) + -->
 <!--       coord_flip() + -->
 <!--       labs(x = "", y = "Response (Percent)", title = "Qualifying Expressions [WX19]") + -->
-<!--       theme_minimal() + -->
+<!--       theme_classic() + -->
 <!--       theme(text = element_text(size = 16), -->
 <!--             plot.title = element_text(size = 14)) + -->
 <!--       scale_fill_viridis(discrete = TRUE) + -->
@@ -671,14 +767,14 @@ renderPlot({
 <!--   p1 <- ggplot(long_data %>% drop_na(input$neg_group), aes_string(y = "Perc", x = "Int", color = input$neg_group)) + -->
 <!--     geom_smooth(method = "lm") + -->
 <!--     labs(x = "Forecast Intensity (EF-Scale)", y = "Mean Response (Risk Rating)") + -->
-<!--     theme_minimal() + -->
+<!--     theme_classic() + -->
 <!--     theme(text = element_text(size = 18)) + -->
 <!--     coord_cartesian(ylim = c(2.25, 4)) + -->
 <!--     scale_color_viridis(discrete = TRUE) -->
 <!--   p2 <- ggplot(long_data %>% drop_na(input$neg_group), aes_string(y = "Perc", x = "Prob", color = input$neg_group)) + -->
 <!--     geom_smooth(method = "lm") + -->
 <!--     labs(x = "Forecast Probability (Percent Chance)", y = "Mean Response (Risk Rating)") + -->
-<!--     theme_minimal() + -->
+<!--     theme_classic() + -->
 <!--     theme(text = element_text(size = 18)) + -->
 <!--     coord_cartesian(ylim = c(2.25, 4)) + -->
 <!--     scale_color_viridis(discrete = TRUE) -->
@@ -728,7 +824,7 @@ renderPlot({
 <!--   p1 <- ggplot(s(), aes_string(x = "cat", y = "value", color = input$spc_group)) + -->
 <!--     stat_summary(size = 1.5, position = position_dodge(width = 0.5)) + -->
 <!--     labs(y = "Mean Response", x = "SPC Risk Category") + -->
-<!--     theme_minimal() + -->
+<!--     theme_classic() + -->
 <!--     theme(text = element_text(size = 18), -->
 <!--           plot.title = element_text(size = 16)) + -->
 <!--     scale_color_viridis(discrete = TRUE) + -->
@@ -739,7 +835,7 @@ renderPlot({
 <!--     p2 <- ggplot(z(), aes(x = cat, y = p, fill = rank)) + -->
 <!--     geom_bar(stat = "identity", position = position_dodge()) + -->
 <!--     labs(y = "Respondents (%)", x = "SPC Risk Category", fill = "Ranking") + -->
-<!--     theme_minimal() + -->
+<!--     theme_classic() + -->
 <!--     theme(text = element_text(size = 18), -->
 <!--           plot.title = element_text(size = 16 )) + -->
 <!--     scale_fill_viridis(discrete = TRUE) + -->
@@ -817,7 +913,7 @@ renderPlot({
 <!--   p1 <- ggplot(a(), aes_string(x = "p", y = "resp", color = input$trade_group)) + -->
 <!--     geom_point(size = 8) + -->
 <!--     labs(x = "Respondents (%)", y = "") + -->
-<!--     theme_minimal() + -->
+<!--     theme_classic() + -->
 <!--     theme(text = element_text(size = 18), -->
 <!--           plot.title = element_text(size = 14)) + -->
 <!--     scale_color_viridis(discrete = TRUE) + -->
@@ -828,7 +924,7 @@ renderPlot({
 <!--   p2 <- ggplot(b(), aes_string(x = "p", y = "resp", color = input$trade_group)) + -->
 <!--     geom_point(size = 8) + -->
 <!--     labs(x = "Respondents (%)", y = "") + -->
-<!--     theme_minimal() + -->
+<!--     theme_classic() + -->
 <!--     theme(text = element_text(size = 18), -->
 <!--           plot.title = element_text(size = 14)) + -->
 <!--     scale_color_viridis(discrete = TRUE) + -->
@@ -839,7 +935,7 @@ renderPlot({
 <!--   p3 <- ggplot(e(), aes_string(x = "p", y = "resp", color = input$trade_group)) + -->
 <!--     geom_point(size = 8) + -->
 <!--     labs(x = "Respondents (%)", y = "") + -->
-<!--     theme_minimal() + -->
+<!--     theme_classic() + -->
 <!--     theme(text = element_text(size = 18), -->
 <!--           plot.title = element_text(size = 14)) + -->
 <!--     scale_color_viridis(discrete = TRUE) + -->
@@ -933,7 +1029,7 @@ renderPlot({
 <!--     geom_bar(stat = "identity") + -->
 <!--     geom_text(size = 6, vjust = -0.2, color = "black") + -->
 <!--     labs(y = "Respondents (%)", x = "") + -->
-<!--     theme_minimal() + -->
+<!--     theme_classic() + -->
 <!--     theme(text = element_text(size = 18), -->
 <!--           plot.title = element_text(size = 14), -->
 <!--           axis.text.x = element_text(size = 12)) + -->
@@ -1006,7 +1102,7 @@ renderPlot({
     labs(x = "Response", y = "Respondents (%)", fill = "Group", 
          title = variable_data[variable_data$id == select_react() %>% pull(var = id), ]$question,
          caption = variable_data[variable_data$id == select_react() %>% pull(var = id), ]$id) +
-    theme_minimal(base_size = 20) +
+    theme_classic(base_size = 20) +
     scale_fill_viridis(discrete = TRUE) +
     theme(title = element_text(size = 14))
   
@@ -1016,7 +1112,7 @@ renderPlot({
     labs(x = "Group", y = "Response", fill = "Group", 
          title = variable_data[variable_data$id == select_react() %>% pull(var = id), ]$question,
          caption = variable_data[variable_data$id == select_react() %>% pull(var = id), ]$id) +
-    theme_minimal(base_size = 20) +
+    theme_classic(base_size = 20) +
     scale_fill_viridis(discrete = TRUE) +
     theme(title = element_text(size = 14))
   
@@ -1094,10 +1190,10 @@ renderPlot({
   aes_string(x = "Year", y = ts_select_react() %>% pull(var = id), color = input$ts_group, group = input$ts_group)) +
     stat_summary(size = 1.5, geom = "pointrange", position = position_dodge(width = 0.25)) +
     stat_summary(size = 1.5, geom = "line", position = position_dodge(width = 0.25)) +
-    labs(x = "Week", y = "Mean", fill = "Group",
+    labs(x = "Year", y = "Mean", fill = "Group",
          title = variable_data[variable_data$id == ts_select_react() %>% pull(var = id), ]$question,
          caption = variable_data[variable_data$id == ts_select_react() %>% pull(var = id), ]$id) +
-    theme_minimal(base_size = 20) +
+    theme_classic(base_size = 20) +
     theme(title = element_text(size = 14)) +
     scale_color_viridis(discrete = TRUE)
   ps <- p + lims(y = c(min(ts_data[, ts_select_react() %>% pull(var = id)], na.rm = TRUE), max(ts_data[, ts_select_react() %>% pull(var = id)], na.rm = TRUE)))
@@ -1181,7 +1277,6 @@ Row
 ```{r}
 dem_map_cols <- viridis(100)
 # dem_map_pal <- colorNumeric(palette = dem_map_cols, domain = c(0, 100))
-
 output$demo_map <- renderLeaflet({
   fips_map$demplot <- fips_map@data[, input$dem_variable]
   dem_map_pal <- colorNumeric(palette = dem_map_cols, domain = c(min(fips_map$demplot, na.rm = TRUE), max(fips_map$demplot, na.rm = TRUE)), na.color = NA)

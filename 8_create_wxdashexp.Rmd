@@ -66,6 +66,8 @@ survey_data$Area <- factor(survey_data$rural, labels = c("Urban", "Suburban", "R
 survey_data$Understanding <- car::recode(survey_data$und_weather, "1 = 'High'; 2 = 'Moderate'; 3:5 = 'Low'")
 survey_data$Understanding <- factor(survey_data$Understanding, levels = c("Low", "Moderate", "High"))
 survey_data$Year <- factor(survey_data$survey_year)
+survey_data$Hazard <- factor(survey_data$survey_hazard)
+
 survey_data$All <- "All"
 groups <- c("All" = "All", 
             "Gender" = "Gender", 
@@ -77,9 +79,10 @@ groups <- c("All" = "All",
             # "Numeracy" = "Numeracy", 
             "Geographic Area (Urban/Rural)" = "Area", 
             "Understanding of Extreme Weather" = "Understanding", 
-            "Survey Year" = "Year")
+            "Survey Year" = "Year",
+            "Survey Hazard" = "Hazard")
 
-variable_data <- read_csv("variable_data_live.csv")
+variable_data <- read_csv("variable_data_new.csv")
 ```
 
 Composite Scales
@@ -214,7 +217,11 @@ tract_data <- reactive({
 
 ### Winter
 
+Coming soon!
+
 ### WRN
+
+Coming soon!
 
 Row {data-height=300}
 -----------------------------------------------------------------------
@@ -258,98 +265,101 @@ Row {data-height=300}
 
 ### Survey Questions
 
-<!-- ```{r} -->
-<!-- R1 <- data.frame( -->
-<!--   question = c("[Please tell us how strongly you agree with the following statements about tornado WARNINGS:] I receive all tornado warnings that are issued for my area.", -->
-<!--                "[Please tell us how strongly you agree with the following statements about tornado WARNINGS:] I receive most tornado warnings that are issued for my area.", -->
-<!--                "[Please tell us how strongly you agree with the following statements about tornado WARNINGS:] I receive tornado warnings as soon as they are issued for my area.", -->
-<!--                "[How confident are you that you would receive tornado warnings in the following situations:] If you are sleeping?", -->
-<!--                "[How confident are you that you would receive tornado warnings in the following situations:] If you are in a car?", -->
-<!--                "[How confident are you that you would receive tornado warnings in the following situations:] If you are at work or school?", -->
-<!--                "[How confident are you that you would receive tornado warnings in the following situations:] If you are at a store?", -->
-<!--                "[How confident are you that you would receive tornado warnings in the following situations:] If you are with a small group of friends or family?", -->
-<!--                "[How confident are you that you would receive tornado warnings in the following situations:] If you are with a large group of friends or family?", -->
-<!--                "[If a tornado WARNING were issued for your area tomorrow at [RANDOM TIME], how confident are you that you would receive the warning:] 1:00 AM – 9:00 AM", -->
-<!--                "[If a tornado WARNING were issued for your area tomorrow at [RANDOM TIME], how confident are you that you would receive the warning:] 10:00 AM – 5:00 PM", -->
-<!--                "[If a tornado WARNING were issued for your area tomorrow at [RANDOM TIME], how confident are you that you would receive the warning:] 6:00 PM – 12:00 AM")) -->
+```{r}
+R1 <- data.frame(
+  question = c("[Please tell us how strongly you agree with the following statements about tornado WARNINGS:] I receive all tornado warnings that are issued for my area.",
+               "[Please tell us how strongly you agree with the following statements about tornado WARNINGS:] I receive most tornado warnings that are issued for my area.",
+               "[Please tell us how strongly you agree with the following statements about tornado WARNINGS:] I receive tornado warnings as soon as they are issued for my area.",
+               "[How confident are you that you would receive tornado warnings in the following situations:] If you are sleeping?",
+               "[How confident are you that you would receive tornado warnings in the following situations:] If you are in a car?",
+               "[How confident are you that you would receive tornado warnings in the following situations:] If you are at work or school?",
+               "[How confident are you that you would receive tornado warnings in the following situations:] If you are at a store?",
+               "[How confident are you that you would receive tornado warnings in the following situations:] If you are with a small group of friends or family?",
+               "[How confident are you that you would receive tornado warnings in the following situations:] If you are with a large group of friends or family?",
+               "[If a tornado WARNING were issued for your area tomorrow at [RANDOM TIME], how confident are you that you would receive the warning:] 1:00 AM – 9:00 AM",
+               "[If a tornado WARNING were issued for your area tomorrow at [RANDOM TIME], how confident are you that you would receive the warning:] 10:00 AM – 5:00 PM",
+               "[If a tornado WARNING were issued for your area tomorrow at [RANDOM TIME], how confident are you that you would receive the warning:] 6:00 PM – 12:00 AM"))
 
-<!-- R2 <- data.frame( -->
-<!--   question = c("In general, do you understand the difference between watches and warnings?", -->
-<!--                "How would you rate your understanding of tornado watches and warnings?", -->
-<!--                "How would you rate your understanding of severe thunderstorm watches and warnings?", -->
-<!--                "Forecasters, websites, and phone applications often use maps to display tornado watches and warnings. How would you rate your understanding of maps?", -->
-<!--                "Forecasters, websites, and phone applications also use radar images to communicate tornado risk. How would you rate your understanding of radar images?", -->
-<!--                "[If a tornado WARNING were issued for your area tomorrow at [RANDOM TIME], how confident are you that you would understand the warning:] 1:00 AM – 9:00 AM", -->
-<!--                "[If a tornado WARNING were issued for your area tomorrow at [RANDOM TIME], how confident are you that you would understand the warning:] 10:00 AM – 5:00 PM", -->
-<!--                "[If a tornado WARNING were issued for your area tomorrow at [RANDOM TIME], how confident are you that you would understand the warning:] 6:00 PM – 12:00 AM")) -->
+R2 <- data.frame(
+  question = c("In general, do you understand the difference between watches and warnings?",
+               "How would you rate your understanding of tornado watches and warnings?",
+               "How would you rate your understanding of severe thunderstorm watches and warnings?",
+               "Forecasters, websites, and phone applications often use maps to display tornado watches and warnings. How would you rate your understanding of maps?",
+               "Forecasters, websites, and phone applications also use radar images to communicate tornado risk. How would you rate your understanding of radar images?",
+               "[If a tornado WARNING were issued for your area tomorrow at [RANDOM TIME], how confident are you that you would understand the warning:] 1:00 AM – 9:00 AM",
+               "[If a tornado WARNING were issued for your area tomorrow at [RANDOM TIME], how confident are you that you would understand the warning:] 10:00 AM – 5:00 PM",
+               "[If a tornado WARNING were issued for your area tomorrow at [RANDOM TIME], how confident are you that you would understand the warning:] 6:00 PM – 12:00 AM"))
 
-<!-- R3 <- data.frame( -->
-<!--   question = c("This alert is issued when severe thunderstorms and tornadoes are possible in and near the area. It does not mean that they will occur. It only means they are possible. [Tornado Watch*, Tornado Warning, Don't Know]", -->
-<!--                "This alert is used when a tornado is imminent. When this alert is issued, seek safe shelter immediately. [Tornado Watch, Tornado Warning*, Don't]", -->
-<!--                "If the National Weather Service issues a tornado warning for your area, how much time do you have before the tornado arrives? [Less than 1 hour*, 1 to 24 hours, 1 to 3 days, More than 3 days]", -->
-<!--                "If the National Weather Service issues a tornado watch for your area, how much time do you have before the tornado arrives? [Less than 1 hour, 1 to 24 hours*, 1 to 3 days, More than 3 days]", -->
-<!--                "Approximately how large is the area included in an average tornado watch? [Around the size of a city, Around the size of a county, Around the size of multiple counties*, Around the size of a state*, Around the size of multiple states*]")) -->
+R3 <- data.frame(
+  question = c("This alert is issued when severe thunderstorms and tornadoes are possible in and near the area. It does not mean that they will occur. It only means they are possible. [Tornado Watch*, Tornado Warning, Don't Know]",
+               "This alert is used when a tornado is imminent. When this alert is issued, seek safe shelter immediately. [Tornado Watch, Tornado Warning*, Don't]",
+               "If the National Weather Service issues a tornado warning for your area, how much time do you have before the tornado arrives? [Less than 1 hour*, 1 to 24 hours, 1 to 3 days, More than 3 days]",
+               "If the National Weather Service issues a tornado watch for your area, how much time do you have before the tornado arrives? [Less than 1 hour, 1 to 24 hours*, 1 to 3 days, More than 3 days]",
+               "Approximately how large is the area included in an average tornado watch? [Around the size of a city, Around the size of a county, Around the size of multiple counties*, Around the size of a state*, Around the size of multiple states*]"))
 
-<!-- R4 <- data.frame( -->
-<!--   question = c("[Please tell us how strongly you agree with the following statements about tornado WARNINGS:] If you have never received a tornado WARNING, please tell us how you think you will respond if you receive a WARNING in the future.",  -->
-<!--                "[Please tell us how strongly you agree with the following statements about tornado WARNINGS:] I always take protective action when tornado warnings are issued for my area.", -->
-<!--                "[How confident are you that you would take protective action in response to tornado warnings in the following situations:] If you are sleeping?", -->
-<!--                "[How confident are you that you would take protective action in response to tornado warnings in the following situations:] If you are in a car?", -->
-<!--                "[How confident are you that you would take protective action in response to tornado warnings in the following situations:] If you are at work or school?", -->
-<!--                "[How confident are you that you would take protective action in response to tornado warnings in the following situations:] If you are at a store?", -->
-<!--                "[How confident are you that you would take protective action in response to tornado warnings in the following situations:] If you are with a small group of friends or family?", -->
-<!--                "[How confident are you that you would take protective action in response to tornado warnings in the following situations:] If you are with a large group of friends or family?", -->
-<!--                "[If a tornado WARNING were issued for your area tomorrow at [RANDOM TIME], how confident are you that you would take protective action in response to the warning:] 1:00 AM – 9:00 AM", -->
-<!--                "[If a tornado WARNING were issued for your area tomorrow at [RANDOM TIME], how confident are you that you would take protective action in response to the warning:] 10:00 AM – 5:00 PM", -->
-<!--                "[If a tornado WARNING were issued for your area tomorrow at [RANDOM TIME], how confident are you that you would take protective action in response to the warning:] 6:00 PM – 12:00 AM")) -->
+R4 <- data.frame(
+  question = c("[Please tell us how strongly you agree with the following statements about tornado WARNINGS:] If you have never received a tornado WARNING, please tell us how you think you will respond if you receive a WARNING in the future.",
+               "[Please tell us how strongly you agree with the following statements about tornado WARNINGS:] I always take protective action when tornado warnings are issued for my area.",
+               "[How confident are you that you would take protective action in response to tornado warnings in the following situations:] If you are sleeping?",
+               "[How confident are you that you would take protective action in response to tornado warnings in the following situations:] If you are in a car?",
+               "[How confident are you that you would take protective action in response to tornado warnings in the following situations:] If you are at work or school?",
+               "[How confident are you that you would take protective action in response to tornado warnings in the following situations:] If you are at a store?",
+               "[How confident are you that you would take protective action in response to tornado warnings in the following situations:] If you are with a small group of friends or family?",
+               "[How confident are you that you would take protective action in response to tornado warnings in the following situations:] If you are with a large group of friends or family?",
+               "[If a tornado WARNING were issued for your area tomorrow at [RANDOM TIME], how confident are you that you would take protective action in response to the warning:] 1:00 AM – 9:00 AM",
+               "[If a tornado WARNING were issued for your area tomorrow at [RANDOM TIME], how confident are you that you would take protective action in response to the warning:] 10:00 AM – 5:00 PM",
+               "[If a tornado WARNING were issued for your area tomorrow at [RANDOM TIME], how confident are you that you would take protective action in response to the warning:] 6:00 PM – 12:00 AM"))
 
 
-<!-- R5 <- data.frame( -->
-<!--   question = c("[Please tell us how strongly you agree with the following statements:] It is possible for most people in my area to prepare and to secure their property ahead of time for a tornado.", -->
-<!--                "[Please tell us how strongly you agree with the following statements:] It is possible for most people in my area to develop a safety plan for how to deal with a tornado.", -->
-<!--                "[Please tell us how strongly you agree with the following statements:] It is possible for most people in my area to protect themselves against a tornado.", -->
-<!--                "[Please tell us how strongly you agree with the following statements:] It is possible for most people in my area to evacuate when necessary ahead of a tornado.", -->
-<!--                "[Please tell us how strongly you agree with the following statements:] I feel that I can prepare and secure my property ahead of time for a tornado.", -->
-<!--                "[Please tell us how strongly you agree with the following statements:] I have a safety plan for how to deal with a tornado.", -->
-<!--                "[Please tell us how strongly you agree with the following statements:] I can protect myself against a tornado.", -->
-<!--                "[Please tell us how strongly you agree with the following statements:] I can evacuate when necessary ahead of a tornado.")) -->
+R5 <- data.frame(
+  question = c("[Please tell us how strongly you agree with the following statements:] It is possible for most people in my area to prepare and to secure their property ahead of time for a tornado.",
+               "[Please tell us how strongly you agree with the following statements:] It is possible for most people in my area to develop a safety plan for how to deal with a tornado.",
+               "[Please tell us how strongly you agree with the following statements:] It is possible for most people in my area to protect themselves against a tornado.",
+               "[Please tell us how strongly you agree with the following statements:] It is possible for most people in my area to evacuate when necessary ahead of a tornado.",
+               "[Please tell us how strongly you agree with the following statements:] I feel that I can prepare and secure my property ahead of time for a tornado.",
+               "[Please tell us how strongly you agree with the following statements:] I have a safety plan for how to deal with a tornado.",
+               "[Please tell us how strongly you agree with the following statements:] I can protect myself against a tornado.",
+               "[Please tell us how strongly you agree with the following statements:] I can evacuate when necessary ahead of a tornado."))
 
-<!-- R6 <- data.frame( -->
-<!--   question = c("[To the best of your knowledge, are the following statements about tornadoes true or false:] Tall buildings protect large cities from tornadoes.", -->
-<!--                "[To the best of your knowledge, are the following statements about tornadoes true or false:] Mountains, rivers, and lakes do not protect nearby areas from tornadoes.", -->
-<!--                "[To the best of your knowledge, are the following statements about tornadoes true or false:] When driving, you should not take shelter from tornadoes under a bridge or overpass.", -->
-<!--                "[To the best of your knowledge, are the following statements about tornadoes true or false:] When sheltering in a house from a tornado, you should open all the windows to equalize the pressure inside and outside to prevent the house from exploding.")) -->
+R6 <- data.frame(
+  question = c("[The next set of questions is about the variety of forecast information that you might receive when a hurricane threatens your location. Do you agree with the following statements?] I receive pretty much all of the information that is available for my location.",
+               "[The next set of questions is about the variety of forecast information that you might receive when a hurricane threatens your location. Do you agree with the following statements?] I receive new information about my location as soon as it is available."))
 
-<!-- R7 <- data.frame( -->
-<!--   question = c("In the last year, have you prepared a disaster supply kit with emergency supplies like water, food and medicine that is kept in a designated place in your home?", -->
-<!--                "In the last year, have you prepared a small kit with emergency supplies that you keep at home, in your car or where you work to take with you if you had to leave quickly?", -->
-<!--                "In the last year, have you made a specific plan for how you and your family would communicate in an emergency situation if you were separated?", -->
-<!--                "In the last year, have you established a specific meeting place to reunite in the event you and your family cannot return home or are evacuated?", -->
-<!--                "In the last year, have you practiced or drilled on what to do in an emergency at home?")) -->
+composite_questions <- bind_rows(R1 %>% mutate(measure = "TO_RECEP"),
+                                 R2 %>% mutate(measure = "TO_SUB_COM"),
+                                 R3 %>% mutate(measure = "TO_OBJ_COM"),
+                                 R4 %>% mutate(measure = "TO_RESP"),
+                                 R5 %>% mutate(measure = "TO_EFFICAC"),
+                                 R6 %>% mutate(measure = "HU_RECEP"))
 
-<!-- composite_questions <- bind_rows(R1 %>% mutate(measure = "RECEP"),  -->
-<!--                                  R2 %>% mutate(measure = "SUB_COM"), -->
-<!--                                  R3 %>% mutate(measure = "OBJ_COM"), -->
-<!--                                  R4 %>% mutate(measure = "RESP"), -->
-<!--                                  R5 %>% mutate(measure = "EFFICAC"), -->
-<!--                                  R6 %>% mutate(measure = "MYTH"), -->
-<!--                                  R7 %>% mutate(measure = "READY")) -->
-
-<!-- DT::renderDataTable({ -->
-<!--   data <- composite_questions %>%  -->
-<!--     filter(measure == input$variable) %>%  -->
-<!--     select(question) -->
-<!--   DT::datatable(data, -->
-<!--                 filter = "top", -->
-<!--                 selection = "single", -->
-<!--                 rownames = FALSE, -->
-<!--                 style = "bootstrap", -->
-<!--                 class = "compact", -->
-<!--                 options = list(dom = "Blrtip", pageLength = 25),  -->
-<!--                 colnames = c("Question Text" = "question")) -->
-<!-- }) -->
-
-<!-- ``` -->
+DT::renderDataTable({
+  # data <- composite_questions %>%
+  #   filter(measure == input$hu_variable) %>%
+  #   select(question)
+  dt1 <- DT::datatable(composite_questions %>%
+                       filter(measure == input$to_variable) %>%
+                       select(question),
+                # filter = "top",
+                # selection = "single",
+                rownames = FALSE,
+                # style = "bootstrap",
+                class = "compact",
+                options = list(dom = "Blrtip", pageLength = 10),
+                colnames = c("Question Text" = "question"))
+  dt2 <- DT::datatable(composite_questions %>%
+                       filter(measure == input$hu_variable) %>%
+                       select(question),
+                # filter = "top",
+                # selection = "single",
+                rownames = FALSE,
+                # style = "bootstrap",
+                class = "compact",
+                options = list(dom = "Blrtip", pageLength = 10),
+                colnames = c("Question Text" = "question"))
+  if (input$to_variable %in% c("TO_RECEP", "TO_SUB_COM", "TO_OBJ_COM", "TO_RESP", "TO_EFFICAC")) {print(dt1)}
+  # if (input$hu_variable %in% c("HU_RECEP")) {print(dt2)}
+  })
+```
 
 Risk Perceptions
 ======================================================================
@@ -520,7 +530,7 @@ renderPlot({
     geom_smooth(color = "red", fill = "red", alpha = 0.5, se = FALSE, size = 3) +
     geom_point(fill = "grey40", color = "grey40", alpha = 0.3, size = 8) +
     geom_point(data = map@data[map@data$CWA == input$cwa, ], 
-               mapping = aes_string(x = col_num, y = input$event), 
+               mapping = aes_string(x = col_num, y = round(pnorm(scale(input$event)) * 100, 2)), 
                color = "blue", fill = "blue", alpha = 0.3, size = 20) +
     geom_text(aes(label = CWA)) +
     labs(x = "Objective Event Frequency", y = "Subjective Risk Perceptions", title = input$cwa) +
@@ -1044,7 +1054,7 @@ renderPlot({
 <!--   }, height=700) -->
 <!-- ``` -->
 
-Explore Survey
+Explore Surveys
 ======================================================================
 Sidebar {.sidebar data-width=300}
 -----------------------------------------------------------------------
@@ -1096,7 +1106,7 @@ d <- reactive({
 
 renderPlot({
   p1 <- ggplot(d() %>% drop_na(input$exp_group, select_react() %>% pull(var = id)), 
-               aes_string(x = "resp", y = "p", fill = input$exp_group, label = "l")) +
+               aes_string(x = "as.factor(resp)", y = "p", fill = input$exp_group, label = "l")) +
     geom_bar(stat = "identity", position = "dodge") +
     geom_text(position = position_dodge(width = .9), size = 5, vjust = -0.2, color = "black") +
     labs(x = "Response", y = "Respondents (%)", fill = "Group", 
@@ -1104,10 +1114,13 @@ renderPlot({
          caption = variable_data[variable_data$id == select_react() %>% pull(var = id), ]$id) +
     theme_classic(base_size = 20) +
     scale_fill_viridis(discrete = TRUE) +
-    theme(title = element_text(size = 14))
+    scale_y_continuous(minor_breaks = NULL, 
+                       expand = expansion(mult = c(0, 0.2))) +
+    # scale_x_discrete(labels = variable_data[variable_data$id == select_react() %>% pull(var = id), ]$label) +
+        theme(title = element_text(size = 14))
   
   p2 <- ggplot(survey_data %>% drop_na(input$exp_group, select_react() %>% pull(var = id)), 
-               aes_string(y = select_react() %>% pull(var = id), x = input$exp_group, fill = input$exp_group)) +
+               aes_string(y = select_react() %>% pull(var = id), x = as.factor(input$exp_group), fill = input$exp_group)) +
     geom_boxplot() +
     labs(x = "Group", y = "Response", fill = "Group", 
          title = variable_data[variable_data$id == select_react() %>% pull(var = id), ]$question,

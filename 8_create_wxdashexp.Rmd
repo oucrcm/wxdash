@@ -574,27 +574,46 @@ lookup <- lookup[order(factor(names(lookup), levels = sort(names(lookup))))]
 ### Subjective Risk Perceptions vs. Objective Event Frequency by CWA
 ```{r}
 selectInput(inputId = 'cwa', label = 'Select a CWA to highlight', choices = lookup)
+cwa_map <- cwa_map %>%
+  mutate(SCALE_PER_HEA = (pnorm(scale(cwa_map$PER_HEA)) * 100),
+         SCALE_PER_DRO = (pnorm(scale(cwa_map$PER_DRO)) * 100),
+         SCALE_PER_COL = (pnorm(scale(cwa_map$PER_COL)) * 100) - COLD,
+         SCALE_PER_SNO = (pnorm(scale(cwa_map$PER_SNO)) * 100) - SNOW,
+         SCALE_PER_TOR = (pnorm(scale(cwa_map$PER_TOR)) * 100) - TORN,
+         SCALE_PER_FLO = (pnorm(scale(cwa_map$PER_FLO)) * 100) - FLOOD,
+         SCALE_PER_HUR = (pnorm(scale(cwa_map$PER_HUR)) * 100) - HURR,
+         SCALE_PER_FIR = (pnorm(scale(cwa_map$PER_FIR)) * 100) - FIRE)
+
 renderPlot({
-  # rsk_name <- NA
-  # rsk_name <- ifelse(input$event == "PER_HEA", "HEAT", rsk_name)
-  # rsk_name <- ifelse(input$event == "PER_DRO", "DROUGHT", rsk_name)
-  # rsk_name <- ifelse(input$event == "PER_COL", "COLD", rsk_name)
-  # rsk_name <- ifelse(input$event == "PER_SNO", "SNOW", rsk_name)
-  # rsk_name <- ifelse(input$event == "PER_TOR", "TORN", rsk_name)
-  # rsk_name <- ifelse(input$event == "PER_FLO", "FLOOD", rsk_name)
-  # rsk_name <- ifelse(input$event == "PER_HUR", "HURR", rsk_name)
-  # rsk_name <- ifelse(input$event == "PER_FIR", "FIRE", rsk_name)
-  # p <- ggplot(data = cwa_map, aes_string(x = "DROUGHT", y = round(pnorm(scale(input$event)) * 100, 2))) +
-  #   # geom_smooth(color = "red", fill = "red", alpha = 0.5, se = FALSE, size = 3) +
-  #   geom_point(fill = "grey40", color = "grey40", alpha = 0.3, size = 8) +
-  #   # geom_point(data = cwa_map[cwa_map$CWA == input$cwa, ],
-  #   #            aes_string(x = rsk_name, y = round(pnorm(scale(input$event)) * 100, 2)),
-  #   #            color = "blue", fill = "blue", alpha = 0.3, size = 20) +
-  #   # geom_text(aes(label = CWA)) +
-  #   labs(x = "Objective Event Frequency", y = "Subjective Risk Perceptions", title = input$cwa) +
-  #   theme_classic() +
-  #   theme(text = element_text(size = 20))
-  p <- ggplot(data = cwa_map, aes_string(x = "DROUGHT", y = round(pnorm(scale(input$event)) * 100, 2))) + geom_point()
+  sub_name <- NA
+  sub_name <- ifelse(input$event == "PER_HEA", "PER_HEA", sub_name)
+  sub_name <- ifelse(input$event == "PER_DRO", "PER_DRO", sub_name)
+  sub_name <- ifelse(input$event == "PER_COL", "PER_COL", sub_name)
+  sub_name <- ifelse(input$event == "PER_SNO", "PER_SNO", sub_name)
+  sub_name <- ifelse(input$event == "PER_TOR", "PER_TOR", sub_name)
+  sub_name <- ifelse(input$event == "PER_FLO", "PER_FLO", sub_name)
+  sub_name <- ifelse(input$event == "PER_HUR", "PER_HUR", sub_name)
+  sub_name <- ifelse(input$event == "PER_FIR", "PER_FIR", sub_name)
+  obj_name <- NA
+  obj_name <- ifelse(input$event == "PER_HEA", "HEAT", obj_name)
+  obj_name <- ifelse(input$event == "PER_DRO", "DROUGHT", obj_name)
+  obj_name <- ifelse(input$event == "PER_COL", "COLD", obj_name)
+  obj_name <- ifelse(input$event == "PER_SNO", "SNOW", obj_name)
+  obj_name <- ifelse(input$event == "PER_TOR", "TORN", obj_name)
+  obj_name <- ifelse(input$event == "PER_FLO", "FLOOD", obj_name)
+  obj_name <- ifelse(input$event == "PER_HUR", "HURR", obj_name)
+  obj_name <- ifelse(input$event == "PER_FIR", "FIRE", obj_name)
+  p <- ggplot(data = cwa_map, aes_string(x = obj_name, y = sub_name)) +
+    geom_smooth(color = "red", fill = "red", alpha = 0.5, se = FALSE, size = 3) +
+    geom_point(fill = "grey40", color = "grey40", alpha = 0.3, size = 8) +
+    geom_point(data = cwa_map[cwa_map$CWA == input$cwa, ],
+               aes_string(x = obj_name, y = sub_name), 
+               color = "blue", fill = "blue", alpha = 0.3, size = 20) +
+    geom_text(aes(label = CWA)) +
+    labs(x = "Objective Event Frequency", y = "Subjective Risk Perceptions", title = input$cwa) +
+    theme_classic() +
+    theme(text = element_text(size = 20))
+  # p <- ggplot(data = cwa_map, aes_string(x = "DROUGHT", y = sub_rsk)) + geom_point()
   print(p)
   })
 ```

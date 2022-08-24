@@ -35,21 +35,34 @@ output:
 library(flexdashboard)
 library(leaflet.extras)
 library(leaflet)
-library(rgdal) # TODO: transition to sf
+library(sf)
 library(tidyverse)
 library(shiny)
 library(viridis)
 library(RColorBrewer)
 library(miniUI)
-map <- readOGR("outputs/cwa_estimates")
-map@data <- map@data %>%
-  mutate_at(vars(TO_RECEP:DROUGHT), funs(pnorm(.) * 100)) # convert z-scores to percentile ranks
-map$CWA <- as.character(map$CWA)
 
-fips_map <- readOGR("outputs/county_estimates")
-fips_map@data <- fips_map@data %>%
-  mutate_at(vars(TO_RECEP:DROUGHT), funs(pnorm(.) * 100)) # convert z-scores to percentile ranks
+cwa_map <- read_sf("outputs/cwa_estimates")
+cwa_map <- cwa_map %>% 
+  mutate_at(vars(TO_RECEP:DROUGHT), list(~pnorm(.) * 100)) # convert z-scores to percentile ranks
+cwa_map$CWA <- as.character(cwa_map$CWA)
+cwa_map <- st_transform(cwa_map, "+proj=longlat +datum=WGS84")
+
+fips_map <- read_sf("outputs/county_estimates")
+fips_map <- fips_map %>% 
+  mutate_at(vars(TO_RECEP:DROUGHT), list(~pnorm(.) * 100)) # convert z-scores to percentile ranks
 fips_map$CWA <- as.character(fips_map$CWA)
+fips_map <- st_transform(fips_map, "+proj=longlat +datum=WGS84")
+
+# map <- readOGR("outputs/cwa_estimates")
+# map@data <- map@data %>%
+#   mutate_at(vars(TO_RECEP:DROUGHT), funs(pnorm(.) * 100)) # convert z-scores to percentile ranks
+# map$CWA <- as.character(map$CWA)
+# 
+# fips_map <- readOGR("outputs/county_estimates")
+# fips_map@data <- fips_map@data %>%
+#   mutate_at(vars(TO_RECEP:DROUGHT), funs(pnorm(.) * 100)) # convert z-scores to percentile ranks
+# fips_map$CWA <- as.character(fips_map$CWA)
 
 survey_data <- read.csv("outputs/base_survey_data.csv")
 
@@ -106,8 +119,6 @@ Contact [Joe Ripberger](mailto:jtr@ou.edu) or [Carol Silva](mailto:clsilva@ou.ed
 Row {data-height=500}{.tabset .tabset-fade}
 -----------------------------------------------------------------------
 
-#### Estimates by County Warning Area (CWA)
-
 ### Severe
 
 ```{r}
@@ -127,41 +138,62 @@ variable_map_cols <- viridis(100)
 variable_map_pal <- colorNumeric(palette = variable_map_cols, domain = c(30, 70))
 
 output$to_map <- renderLeaflet({
-  map$variableplot <- map@data[, input$to_variable]
-  p_popup <- with(map@data, paste0("NWS ", City, ", ", ST, " (", CWA,")", "<br>", 
-                                   "Percentile rank of the average person in the CWA: ", round(variableplot, 2), "<br>",
-                                   "Percentile rank of the CWA: ", round(pnorm(scale(variableplot)) * 100, 2)))
-  to_map <- leaflet(map) %>%
-    setView(lng = -97, lat = 40, zoom = 4) %>% 
-    # addFullscreenControl() %>% 
-    addTiles(options = providerTileOptions(minZoom = 4, maxZoom = 10)) %>%
-    clearShapes() %>%
+  cwa_map$to_variable <- cwa_map %>% pull(input$to_variable)
+  fips_map$to_variable <- fips_map %>% pull(input$to_variable)
+  cwa_popup <- with(cwa_map, paste0("NWS ", City, ", ", ST, " (", CWA,")", "<br>",
+                                    "Percentile rank of the average person in the CWA: ", round(to_variable, 2), "<br>",
+                                    "Percentile rank of the CWA: ", round(pnorm(scale(to_variable)) * 100, 2)))
+  fips_popup <- with(fips_map, paste0(NAME, ", County ", "(", CWA, ")", "<br>",
+                                      "Percentile rank of the average person in the County: ", round(to_variable, 2), "<br>",
+                                      "Percentile rank of the County: ", round(pnorm(scale(to_variable)) * 100, 2)))
+  to_map <- leaflet() %>%
+    setView(lng = -97, lat = 40, zoom = 4) %>%
+    addTiles() %>%
     addPolygons(
-      fillColor = ~variable_map_pal(variableplot),
+      data = cwa_map,
+      fillColor = ~variable_map_pal(to_variable),
       highlight = highlightOptions(weight = 5, color = "grey", fillOpacity = 0.9, bringToFront = TRUE),
       color = "white",
       fillOpacity = 0.9,
       stroke = TRUE,
       smoothFactor = 0.8,
       weight = 2,
-      popup = p_popup,
-      layerId = ~CWA) %>% 
-    # addFullscreenControl(pseudoFullscreen = TRUE) %>% 
-    addLegend(position = 'bottomright', pal = variable_map_pal, values = ~variableplot, opacity = 0.7, title = "Mean<br>Percentile<br>Rank")
+      popup = cwa_popup,
+      layerId = ~CWA,
+      group = "CWA") %>% 
+    addPolygons(
+      data = fips_map,
+      fillColor = ~variable_map_pal(to_variable),
+      highlight = highlightOptions(weight = 5, color = "grey", fillOpacity = 0.9, bringToFront = TRUE),
+      color = "white",
+      fillOpacity = 0.9,
+      stroke = TRUE,
+      smoothFactor = 0.8,
+      weight = 0.5,
+      popup = fips_popup,
+      layerId = ~FIPS,
+      group = "County") %>% 
+    addPolylines(
+      data = cwa_map,
+      group = "County",
+      color = "white",
+      weight = 2) %>%
+    addLayersControl(
+      baseGroups = c("State", "CWA", "County"),
+      options = layersControlOptions(collapsed = FALSE)) %>%
+    showGroup("CWA") %>%
+    hideGroup("State") %>%
+    hideGroup("County") %>% 
+    addLegend(
+      data = cwa_map,
+      position = 'bottomright',
+      pal = variable_map_pal,
+      values = ~to_variable,
+      opacity = 0.7,
+      title = "Mean<br>Percentile<br>Rank")
   })
 
 miniContentPanel(leafletOutput(outputId = "to_map"), padding = c(0, 0, 75, 0), scrollable = TRUE)
-
-click_tract <- eventReactive(input$map_shape_click, {
-    x <- input$map_shape_click
-    y <- x$id
-    return(y)
-  })
-
-tract_data <- reactive({
-    # Fetch data for the clicked tract
-    return(map@data[map@data$CWA == click_tract(), ])
-  })
 ```
 
 ### Tropical
@@ -178,41 +210,63 @@ div(style = "font-size: 11px",
 ```
 
 ```{r}
-output$map <- renderLeaflet({
-  map$variableplot <- map@data[, input$hu_variable]
-  p_popup <- with(map@data, paste0("NWS ", City, ", ", ST, " (", CWA,")", "<br>", 
-                                   "Percentile rank of the average person in the CWA: ", round(variableplot, 2), "<br>",
-                                   "Percentile rank of the CWA: ", round(pnorm(scale(variableplot)) * 100, 2)))
-  map <- leaflet(map) %>%
-    setView(lng = -97, lat = 40, zoom = 4) %>% 
-    addFullscreenControl() %>% 
-    addTiles(options = providerTileOptions(minZoom = 4, maxZoom = 10)) %>%
-    clearShapes() %>%
+output$hu_map <- renderLeaflet({
+  cwa_map$hu_variable <- cwa_map %>% pull(input$hu_variable)
+  fips_map$hu_variable <- fips_map %>% pull(input$hu_variable)
+  cwa_popup <- with(cwa_map, paste0("NWS ", City, ", ", ST, " (", CWA,")", "<br>",
+                                    "Percentile rank of the average person in the CWA: ", round(hu_variable, 2), "<br>",
+                                    "Percentile rank of the CWA: ", round(pnorm(scale(hu_variable)) * 100, 2)))
+  fips_popup <- with(fips_map, paste0(NAME, ", County ", "(", CWA, ")", "<br>",
+                                      "Percentile rank of the average person in the County: ", round(hu_variable, 2), "<br>",
+                                      "Percentile rank of the County: ", round(pnorm(scale(hu_variable)) * 100, 2)))
+  to_map <- leaflet() %>%
+    setView(lng = -97, lat = 40, zoom = 4) %>%
+    addTiles() %>%
     addPolygons(
-      fillColor = ~variable_map_pal(variableplot),
+      data = cwa_map,
+      fillColor = ~variable_map_pal(hu_variable),
       highlight = highlightOptions(weight = 5, color = "grey", fillOpacity = 0.9, bringToFront = TRUE),
       color = "white",
       fillOpacity = 0.9,
       stroke = TRUE,
       smoothFactor = 0.8,
       weight = 2,
-      popup = p_popup,
-      layerId = ~CWA) %>%
-    addLegend(position = 'bottomright', pal = variable_map_pal, values = ~variableplot, opacity = 0.7, title = "Mean<br>Percentile<br>Rank")
+      popup = cwa_popup,
+      layerId = ~CWA,
+      group = "CWA") %>% 
+    addPolygons(
+      data = fips_map,
+      fillColor = ~variable_map_pal(hu_variable),
+      highlight = highlightOptions(weight = 5, color = "grey", fillOpacity = 0.9, bringToFront = TRUE),
+      color = "white",
+      fillOpacity = 0.9,
+      stroke = TRUE,
+      smoothFactor = 0.8,
+      weight = 0.5,
+      popup = fips_popup,
+      layerId = ~FIPS,
+      group = "County") %>% 
+    addPolylines(
+      data = cwa_map,
+      group = "County",
+      color = "white",
+      weight = 2) %>%
+    addLayersControl(
+      baseGroups = c("State", "CWA", "County"),
+      options = layersControlOptions(collapsed = FALSE)) %>%
+    showGroup("CWA") %>%
+    hideGroup("State") %>%
+    hideGroup("County") %>% 
+    addLegend(
+      data = cwa_map,
+      position = 'bottomright',
+      pal = variable_map_pal,
+      values = ~hu_variable,
+      opacity = 0.7,
+      title = "Mean<br>Percentile<br>Rank")
   })
 
-miniContentPanel(leafletOutput(outputId = "map"), padding = c(0, 0, 75, 0), scrollable = TRUE)
-
-click_tract <- eventReactive(input$map_shape_click, {
-    x <- input$map_shape_click
-    y <- x$id
-    return(y)
-  })
-
-tract_data <- reactive({
-    # Fetch data for the clicked tract
-    return(map@data[map@data$CWA == click_tract(), ])
-  })
+miniContentPanel(leafletOutput(outputId = "hu_map"), padding = c(0, 0, 75, 0), scrollable = TRUE)
 ```
 
 ### Winter
@@ -223,45 +277,8 @@ Coming soon!
 
 Coming soon!
 
-Row {data-height=300}
+Row {data-height=200}
 -----------------------------------------------------------------------
-
-### Estimates by County (Click on a CWA in the Map Above)
-
-```{r}
-
-# # variable_map_cols <- viridis(100, option = "plasma")
-# variable_map_cols <- viridis(100)
-# variable_map_pal <- colorNumeric(palette = variable_map_cols, domain = c(30, 70))
-# 
-# output$fips_map <- renderLeaflet({
-#   fips_map <- fips_map[fips_map$CWA == tract_data()[, 1], ]
-#   map$variableplot <- map@data[, input$variable]
-#   # variable_map_pal <- colorNumeric(palette = variable_map_cols, domain = c(min(map$variableplot), max(map$variableplot))) # MAKE COLORS RELATIVE WITHIN CWA
-#   p_popup <- with(map@data, paste0(NAME, ", County ", "(", CWA, ")", "<br>",
-#                                    "Percentile rank of the average person in the County: ", round(variableplot, 2), "<br>",
-#                                    "Percentile rank of the County: ", round(pnorm(scale(variableplot)) * 100, 2)))
-#   fips_map <- leaflet(map) %>%
-#     addFullscreenControl() %>%
-#     addTiles(options = providerTileOptions(minZoom = 4, maxZoom = 10)) %>%
-#     clearShapes() %>%
-#     addPolygons(
-#       fillColor = ~variable_map_pal(variableplot),
-#       highlight = highlightOptions(weight = 5, color = "grey", fillOpacity = 0.9, bringToFront = TRUE),
-#       color = "white",
-#       fillOpacity = 0.9,
-#       stroke = TRUE,
-#       smoothFactor = 0.8,
-#       weight = 2,
-#       popup = p_popup,
-#       layerId = ~FIPS) %>%
-#     addLegend(position = 'bottomright', pal = variable_map_pal, values = ~variableplot, opacity = 0.7, title = "Mean<br>Percentile<br>Rank")
-#   })
-# 
-# leafletOutput(outputId = "fips_map")
-
-```
-
 
 ### Survey Questions
 
@@ -397,9 +414,11 @@ Data on **event frequency** come from NOAA Storm Events Database (https://www.nc
 <br>
 <br>
 ```{r}
-lookup <- structure(c(as.character(map@data$CWA)), .Names = c(paste0("NWS ", map@data$City, ", ", map$ST, " (", map@data$CWA,")")))
-lookup <- lookup[order(factor(names(lookup), levels = sort(names(lookup))))]
-selectInput(inputId = 'cwa', label = 'Select a CWA to highlight', choices = lookup)
+
+# lookup <- structure(c(as.character(map@data$CWA)), .Names = c(paste0("NWS ", map@data$City, ", ", map$ST, " (", map@data$CWA,")")))
+# lookup <- lookup[order(factor(names(lookup), levels = sort(names(lookup))))]
+# selectInput(inputId = 'cwa', label = 'Select a CWA to highlight', choices = lookup)
+
 ```
 
 Row
@@ -407,108 +426,114 @@ Row
 
 ### Subjective Risk Perceptions from Survey Data
 ```{r}
-perception_map_cols <- viridis(100)
-perception_map_pal <- colorNumeric(palette = perception_map_cols, domain = c(0, 100))
 
-output$perception_map <- renderLeaflet({
-  map$eventplot <- map@data[, input$event]
-  p_popup <- with(map@data, paste0("NWS ", City, ", ", ST, " (", CWA,")", "<br>",
-                                   "Percentile rank of the average person in the CWA: ", round(eventplot, 2), "<br>",
-                                   "Percentile rank of the CWA: ", round(pnorm(scale(eventplot)) * 100, 2)))
-  l <- leaflet(map) %>%
-    setView(lng = -97, lat = 40, zoom = 3) %>% 
-    addTiles(options = providerTileOptions(minZoom = 3, maxZoom = 10)) %>%
-    addFullscreenControl() %>% 
-    clearShapes() %>%
-    addPolygons(
-      fillColor = ~perception_map_pal(eventplot),
-      color = "white",
-      fillOpacity = 0.9,
-      stroke = TRUE,
-      smoothFactor = 0.8,
-      weight = 0.5,
-      popup = p_popup,
-      layerId = ~CWA,
-      highlight = highlightOptions(weight = 5, color = "grey", fillOpacity = 0.9, bringToFront = TRUE)) %>%
-    addLegend(position = 'bottomright', pal = perception_map_pal, values = ~eventplot, opacity = 0.7, title = "Mean<br>Percentile<br>Rank")
-  })
-leafletOutput(outputId = "perception_map")
+# perception_map_cols <- viridis(100)
+# perception_map_pal <- colorNumeric(palette = perception_map_cols, domain = c(0, 100))
+# 
+# output$perception_map <- renderLeaflet({
+#   map$eventplot <- map@data[, input$event]
+#   p_popup <- with(map@data, paste0("NWS ", City, ", ", ST, " (", CWA,")", "<br>",
+#                                    "Percentile rank of the average person in the CWA: ", round(eventplot, 2), "<br>",
+#                                    "Percentile rank of the CWA: ", round(pnorm(scale(eventplot)) * 100, 2)))
+#   l <- leaflet(map) %>%
+#     setView(lng = -97, lat = 40, zoom = 3) %>% 
+#     addTiles(options = providerTileOptions(minZoom = 3, maxZoom = 10)) %>%
+#     addFullscreenControl() %>% 
+#     clearShapes() %>%
+#     addPolygons(
+#       fillColor = ~perception_map_pal(eventplot),
+#       color = "white",
+#       fillOpacity = 0.9,
+#       stroke = TRUE,
+#       smoothFactor = 0.8,
+#       weight = 0.5,
+#       popup = p_popup,
+#       layerId = ~CWA,
+#       highlight = highlightOptions(weight = 5, color = "grey", fillOpacity = 0.9, bringToFront = TRUE)) %>%
+#     addLegend(position = 'bottomright', pal = perception_map_pal, values = ~eventplot, opacity = 0.7, title = "Mean<br>Percentile<br>Rank")
+#   })
+# leafletOutput(outputId = "perception_map")
+
 ```
 
 ### Objective Event Frequency from NOAA Storm Data
 ```{r}
-frequency_map_cols <- viridis(100)
-frequency_map_pal <- colorNumeric(palette = frequency_map_cols, domain = c(0, 100))
 
-output$frequency_map <- renderLeaflet({
-  col_num <- NA
-  col_num <- ifelse(input$event == "PER_HEA", 33, col_num)
-  col_num <- ifelse(input$event == "PER_DRO", 37, col_num)
-  col_num <- ifelse(input$event == "PER_COL", 30, col_num)
-  col_num <- ifelse(input$event == "PER_SNO", 35, col_num)
-  col_num <- ifelse(input$event == "PER_TOR", 36, col_num)
-  col_num <- ifelse(input$event == "PER_FLO", 32, col_num)
-  col_num <- ifelse(input$event == "PER_HUR", 34, col_num)
-  col_num <- ifelse(input$event == "PER_FIR", 31, col_num)
-  map$freqplot <- map@data[, col_num]
-  p_popup <- with(map@data, paste0("NWS ", City, ", ", ST, " (", CWA,")", "<br>",
-                                   "Percentile rank of the CWA: ", round(freqplot, 2)))
-  l <- leaflet(map) %>%
-    setView(lng = -97, lat = 40, zoom = 3) %>% 
-    addTiles(options = providerTileOptions(minZoom = 3, maxZoom = 10)) %>%
-    addFullscreenControl() %>% 
-    clearShapes() %>%
-    addPolygons(
-      fillColor = ~frequency_map_pal(freqplot),
-      color = "white",
-      fillOpacity = 0.9,
-      stroke = TRUE,
-      smoothFactor = 0.8,
-      weight = 0.5,
-      popup = p_popup,
-      layerId = ~CWA,
-      highlight = highlightOptions(weight = 5, color = "grey", fillOpacity = 0.9, bringToFront = TRUE)) %>%
-    addLegend(position = 'bottomright', pal = frequency_map_pal, values = ~freqplot, opacity = 0.7, title = "CWA<br>Percentile<br>Rank")
-  })
-leafletOutput(outputId = "frequency_map")
+# frequency_map_cols <- viridis(100)
+# frequency_map_pal <- colorNumeric(palette = frequency_map_cols, domain = c(0, 100))
+# 
+# output$frequency_map <- renderLeaflet({
+#   col_num <- NA
+#   col_num <- ifelse(input$event == "PER_HEA", 33, col_num)
+#   col_num <- ifelse(input$event == "PER_DRO", 37, col_num)
+#   col_num <- ifelse(input$event == "PER_COL", 30, col_num)
+#   col_num <- ifelse(input$event == "PER_SNO", 35, col_num)
+#   col_num <- ifelse(input$event == "PER_TOR", 36, col_num)
+#   col_num <- ifelse(input$event == "PER_FLO", 32, col_num)
+#   col_num <- ifelse(input$event == "PER_HUR", 34, col_num)
+#   col_num <- ifelse(input$event == "PER_FIR", 31, col_num)
+#   map$freqplot <- map@data[, col_num]
+#   p_popup <- with(map@data, paste0("NWS ", City, ", ", ST, " (", CWA,")", "<br>",
+#                                    "Percentile rank of the CWA: ", round(freqplot, 2)))
+#   l <- leaflet(map) %>%
+#     setView(lng = -97, lat = 40, zoom = 3) %>% 
+#     addTiles(options = providerTileOptions(minZoom = 3, maxZoom = 10)) %>%
+#     addFullscreenControl() %>% 
+#     clearShapes() %>%
+#     addPolygons(
+#       fillColor = ~frequency_map_pal(freqplot),
+#       color = "white",
+#       fillOpacity = 0.9,
+#       stroke = TRUE,
+#       smoothFactor = 0.8,
+#       weight = 0.5,
+#       popup = p_popup,
+#       layerId = ~CWA,
+#       highlight = highlightOptions(weight = 5, color = "grey", fillOpacity = 0.9, bringToFront = TRUE)) %>%
+#     addLegend(position = 'bottomright', pal = frequency_map_pal, values = ~freqplot, opacity = 0.7, title = "CWA<br>Percentile<br>Rank")
+#   })
+# leafletOutput(outputId = "frequency_map")
+
 ```
 
 ### Subjective Risk Perceptions vs. Objective Event Frequency
 ```{r}
-difference_map_cols <- viridis(100, option = "cividis")
-difference_map_pal <- colorNumeric(palette = difference_map_cols, domain = c(0, 100))
 
-output$difference_map <- renderLeaflet({
-  col_num <- NA
-  col_num <- ifelse(input$event == "PER_HEA", 33, col_num)
-  col_num <- ifelse(input$event == "PER_DRO", 37, col_num)
-  col_num <- ifelse(input$event == "PER_COL", 30, col_num)
-  col_num <- ifelse(input$event == "PER_SNO", 35, col_num)
-  col_num <- ifelse(input$event == "PER_TOR", 36, col_num)
-  col_num <- ifelse(input$event == "PER_FLO", 32, col_num)
-  col_num <- ifelse(input$event == "PER_HUR", 34, col_num)
-  col_num <- ifelse(input$event == "PER_FIR", 31, col_num)
-  map$freqplot <- map@data[, col_num]
-  p_popup <- with(map@data, paste0("NWS ", City, ", ", ST, " (", CWA,")", "<br>",
-                                   "Percentile rank of the CWA: ", round(freqplot, 2)))
-  l <- leaflet(map) %>%
-    setView(lng = -97, lat = 40, zoom = 3) %>% 
-    addTiles(options = providerTileOptions(minZoom = 3, maxZoom = 10)) %>%
-    addFullscreenControl() %>% 
-    clearShapes() %>%
-    addPolygons(
-      fillColor = ~difference_map_pal(freqplot),
-      color = "white",
-      fillOpacity = 0.9,
-      stroke = TRUE,
-      smoothFactor = 0.8,
-      weight = 0.5,
-      popup = p_popup,
-      layerId = ~CWA,
-      highlight = highlightOptions(weight = 5, color = "grey", fillOpacity = 0.9, bringToFront = TRUE)) %>%
-    addLegend(position = 'bottomright', pal = difference_map_pal, values = ~freqplot, opacity = 0.7, title = "CWA<br>Percentile<br>Rank")
-  })
-leafletOutput(outputId = "difference_map")
+# difference_map_cols <- viridis(100, option = "cividis")
+# difference_map_pal <- colorNumeric(palette = difference_map_cols, domain = c(0, 100))
+# 
+# output$difference_map <- renderLeaflet({
+#   col_num <- NA
+#   col_num <- ifelse(input$event == "PER_HEA", 33, col_num)
+#   col_num <- ifelse(input$event == "PER_DRO", 37, col_num)
+#   col_num <- ifelse(input$event == "PER_COL", 30, col_num)
+#   col_num <- ifelse(input$event == "PER_SNO", 35, col_num)
+#   col_num <- ifelse(input$event == "PER_TOR", 36, col_num)
+#   col_num <- ifelse(input$event == "PER_FLO", 32, col_num)
+#   col_num <- ifelse(input$event == "PER_HUR", 34, col_num)
+#   col_num <- ifelse(input$event == "PER_FIR", 31, col_num)
+#   map$freqplot <- map@data[, col_num]
+#   p_popup <- with(map@data, paste0("NWS ", City, ", ", ST, " (", CWA,")", "<br>",
+#                                    "Percentile rank of the CWA: ", round(freqplot, 2)))
+#   l <- leaflet(map) %>%
+#     setView(lng = -97, lat = 40, zoom = 3) %>% 
+#     addTiles(options = providerTileOptions(minZoom = 3, maxZoom = 10)) %>%
+#     addFullscreenControl() %>% 
+#     clearShapes() %>%
+#     addPolygons(
+#       fillColor = ~difference_map_pal(freqplot),
+#       color = "white",
+#       fillOpacity = 0.9,
+#       stroke = TRUE,
+#       smoothFactor = 0.8,
+#       weight = 0.5,
+#       popup = p_popup,
+#       layerId = ~CWA,
+#       highlight = highlightOptions(weight = 5, color = "grey", fillOpacity = 0.9, bringToFront = TRUE)) %>%
+#     addLegend(position = 'bottomright', pal = difference_map_pal, values = ~freqplot, opacity = 0.7, title = "CWA<br>Percentile<br>Rank")
+#   })
+# leafletOutput(outputId = "difference_map")
+
 ```
 
 Row
@@ -516,28 +541,30 @@ Row
 
 ### Subjective Risk Perceptions vs. Objective Event Frequency by CWA
 ```{r}
-renderPlot({
-  col_num <- NA
-  col_num <- ifelse(input$event == "PER_HEA", "HEAT", col_num)
-  col_num <- ifelse(input$event == "PER_DRO", "DROUGHT", col_num)
-  col_num <- ifelse(input$event == "PER_COL", "COLD", col_num)
-  col_num <- ifelse(input$event == "PER_SNO", "SNOW", col_num)
-  col_num <- ifelse(input$event == "PER_TOR", "TORN", col_num)
-  col_num <- ifelse(input$event == "PER_FLO", "FLOOD", col_num)
-  col_num <- ifelse(input$event == "PER_HUR", "HURR", col_num)
-  col_num <- ifelse(input$event == "PER_FIR", "FIRE", col_num)
-  p <- ggplot(map@data, aes_string(x = col_num, y = input$event)) +
-    geom_smooth(color = "red", fill = "red", alpha = 0.5, se = FALSE, size = 3) +
-    geom_point(fill = "grey40", color = "grey40", alpha = 0.3, size = 8) +
-    geom_point(data = map@data[map@data$CWA == input$cwa, ], 
-               mapping = aes_string(x = col_num, y = round(pnorm(scale(input$event)) * 100, 2)), 
-               color = "blue", fill = "blue", alpha = 0.3, size = 20) +
-    geom_text(aes(label = CWA)) +
-    labs(x = "Objective Event Frequency", y = "Subjective Risk Perceptions", title = input$cwa) +
-    theme_classic() +
-    theme(text = element_text(size = 20))
-  print(p)
-  })
+
+# renderPlot({
+#   col_num <- NA
+#   col_num <- ifelse(input$event == "PER_HEA", "HEAT", col_num)
+#   col_num <- ifelse(input$event == "PER_DRO", "DROUGHT", col_num)
+#   col_num <- ifelse(input$event == "PER_COL", "COLD", col_num)
+#   col_num <- ifelse(input$event == "PER_SNO", "SNOW", col_num)
+#   col_num <- ifelse(input$event == "PER_TOR", "TORN", col_num)
+#   col_num <- ifelse(input$event == "PER_FLO", "FLOOD", col_num)
+#   col_num <- ifelse(input$event == "PER_HUR", "HURR", col_num)
+#   col_num <- ifelse(input$event == "PER_FIR", "FIRE", col_num)
+#   p <- ggplot(map@data, aes_string(x = col_num, y = input$event)) +
+#     geom_smooth(color = "red", fill = "red", alpha = 0.5, se = FALSE, size = 3) +
+#     geom_point(fill = "grey40", color = "grey40", alpha = 0.3, size = 8) +
+#     geom_point(data = map@data[map@data$CWA == input$cwa, ], 
+#                mapping = aes_string(x = col_num, y = round(pnorm(scale(input$event)) * 100, 2)), 
+#                color = "blue", fill = "blue", alpha = 0.3, size = 20) +
+#     geom_text(aes(label = CWA)) +
+#     labs(x = "Objective Event Frequency", y = "Subjective Risk Perceptions", title = input$cwa) +
+#     theme_classic() +
+#     theme(text = element_text(size = 20))
+#   print(p)
+#   })
+
 ```
 
 Information Sources

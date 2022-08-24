@@ -111,7 +111,7 @@ Sidebar{.sidebar data-width=300}
 <br/>
 <br/>
 <br/>
-**Notes.** The data for this project come from the University of Oklahoma Severe Weather and Society Survey (Wx Survey), a yearly survey of US adults that match the demographic characteristics of the US population. The statistics we present are estimates that we calculate using a small area estimation technique called Multilevel Regression and Postratification (MRP). Navigate to the [About](https://crcm.shinyapps.io/WxDashExp/#section-about) tab to learn more about the project and the estimates. Click [here](https://dataverse.harvard.edu/dataverse/wxsurvey) to access the survey data.
+**Notes.** The data for this project come from the University of Oklahoma Extreme Weather and Society Survey (Wx Survey), a yearly survey of US adults that match the demographic characteristics of the US population. The statistics we present are estimates that we calculate using a small area estimation technique called Multilevel Regression and Postratification (MRP). Navigate to the [About](https://crcm.shinyapps.io/WxDashExp/#section-about) tab to learn more about the project and the estimates. Click [here](https://dataverse.harvard.edu/dataverse/wxsurvey) to access the survey data.
 <br/>
 <br/>
 <br/>

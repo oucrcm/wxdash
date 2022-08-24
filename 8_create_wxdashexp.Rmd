@@ -422,7 +422,7 @@ Data on **event frequency** come from NOAA Storm Events Database (https://www.nc
 <br>
 <br>
 
-Row
+Row {data-height=300}
 -----------------------------------------------------------------------
 
 ### Subjective Risk Perceptions from Survey Data
@@ -436,7 +436,7 @@ output$sub_rsk_map <- renderLeaflet({
                                     "Percentile rank of the average person in the CWA: ", round(sub_rsk_variable, 2), "<br>",
                                     "Percentile rank of the CWA: ", round(pnorm(scale(sub_rsk_variable)) * 100, 2)))
   to_map <- leaflet() %>%
-    setView(lng = -97, lat = 40, zoom = 3) %>%
+    setView(lng = -96.5, lat = 36.5, zoom = 3) %>%
     addTiles() %>%
     addPolygons(
       data = cwa_map,
@@ -482,7 +482,7 @@ output$obj_frq_map <- renderLeaflet({
   cwa_popup <- with(cwa_map, paste0("NWS ", City, ", ", ST, " (", CWA,")", "<br>",
                                     "Percentile rank of the CWA: ", round(obj_frq_variable, 2)))
   to_map <- leaflet() %>%
-    setView(lng = -97, lat = 40, zoom = 3) %>%
+    setView(lng = -96.5, lat = 36.5, zoom = 3) %>%
     addTiles() %>%
     addPolygons(
       data = cwa_map,
@@ -537,7 +537,7 @@ output$sub_obj_map <- renderLeaflet({
   cwa_popup <- with(cwa_map, paste0("NWS ", City, ", ", ST, " (", CWA,")", "<br>",
                                     "Difference in Percentile rank of the CWA: ", round(sub_obj_variable, 2)))
   to_map <- leaflet() %>%
-    setView(lng = -97, lat = 40, zoom = 3) %>%
+    setView(lng = -96.5, lat = 36.5, zoom = 3) %>%
     addTiles() %>%
     addPolygons(
       data = cwa_map,
@@ -564,7 +564,7 @@ output$sub_obj_map <- renderLeaflet({
 miniContentPanel(leafletOutput(outputId = "sub_obj_map"), padding = c(0, 0, 0, 0), scrollable = TRUE)
 ```
 
-Row
+Row {data-height=400}
 -----------------------------------------------------------------------
 ```{r}
 lookup <- structure(c(as.character(cwa_map$CWA)), .Names = c(paste0("NWS ", cwa_map$City, ", ", cwa_map$ST, " (", cwa_map$CWA,")")))
@@ -584,16 +584,16 @@ cwa_map <- cwa_map %>%
          SCALE_PER_HUR = (pnorm(scale(cwa_map$PER_HUR)) * 100) - HURR,
          SCALE_PER_FIR = (pnorm(scale(cwa_map$PER_FIR)) * 100) - FIRE)
 
-renderPlot({
+miniContentPanel(renderPlot({
   sub_name <- NA
-  sub_name <- ifelse(input$event == "PER_HEA", "PER_HEA", sub_name)
-  sub_name <- ifelse(input$event == "PER_DRO", "PER_DRO", sub_name)
-  sub_name <- ifelse(input$event == "PER_COL", "PER_COL", sub_name)
-  sub_name <- ifelse(input$event == "PER_SNO", "PER_SNO", sub_name)
-  sub_name <- ifelse(input$event == "PER_TOR", "PER_TOR", sub_name)
-  sub_name <- ifelse(input$event == "PER_FLO", "PER_FLO", sub_name)
-  sub_name <- ifelse(input$event == "PER_HUR", "PER_HUR", sub_name)
-  sub_name <- ifelse(input$event == "PER_FIR", "PER_FIR", sub_name)
+  sub_name <- ifelse(input$event == "PER_HEA", "SCALE_PER_HEA", sub_name)
+  sub_name <- ifelse(input$event == "PER_DRO", "SCALE_PER_DRO", sub_name)
+  sub_name <- ifelse(input$event == "PER_COL", "SCALE_PER_COL", sub_name)
+  sub_name <- ifelse(input$event == "PER_SNO", "SCALE_PER_SNO", sub_name)
+  sub_name <- ifelse(input$event == "PER_TOR", "SCALE_PER_TOR", sub_name)
+  sub_name <- ifelse(input$event == "PER_FLO", "SCALE_PER_FLO", sub_name)
+  sub_name <- ifelse(input$event == "PER_HUR", "SCALE_PER_HUR", sub_name)
+  sub_name <- ifelse(input$event == "PER_FIR", "SCALE_PER_FIR", sub_name)
   obj_name <- NA
   obj_name <- ifelse(input$event == "PER_HEA", "HEAT", obj_name)
   obj_name <- ifelse(input$event == "PER_DRO", "DROUGHT", obj_name)
@@ -603,19 +603,30 @@ renderPlot({
   obj_name <- ifelse(input$event == "PER_FLO", "FLOOD", obj_name)
   obj_name <- ifelse(input$event == "PER_HUR", "HURR", obj_name)
   obj_name <- ifelse(input$event == "PER_FIR", "FIRE", obj_name)
-  p <- ggplot(data = cwa_map, aes_string(x = obj_name, y = sub_name)) +
-    geom_smooth(color = "red", fill = "red", alpha = 0.5, se = FALSE, size = 3) +
-    geom_point(fill = "grey40", color = "grey40", alpha = 0.3, size = 8) +
+  dif_name <- NA
+  dif_name <- ifelse(input$event == "PER_HEA", "heat_difference", dif_name)
+  dif_name <- ifelse(input$event == "PER_DRO", "drought_difference", dif_name)
+  dif_name <- ifelse(input$event == "PER_COL", "cold_difference", dif_name)
+  dif_name <- ifelse(input$event == "PER_SNO", "snow_difference", dif_name)
+  dif_name <- ifelse(input$event == "PER_TOR", "torn_difference", dif_name)
+  dif_name <- ifelse(input$event == "PER_FLO", "flood_difference", dif_name)
+  dif_name <- ifelse(input$event == "PER_HUR", "hurr_difference", dif_name)
+  dif_name <- ifelse(input$event == "PER_FIR", "fire_difference", dif_name)
+  p <- ggplot(data = cwa_map, aes_string(x = obj_name, y = sub_name, color = dif_name)) +
+    geom_smooth(method = lm, color = "red", alpha = 0.5, se = FALSE, size = 3) +
+    geom_point(alpha = 0.3, size = 8) +
     geom_point(data = cwa_map[cwa_map$CWA == input$cwa, ],
                aes_string(x = obj_name, y = sub_name), 
                color = "blue", fill = "blue", alpha = 0.3, size = 20) +
     geom_text(aes(label = CWA)) +
     labs(x = "Objective Event Frequency", y = "Subjective Risk Perceptions", title = input$cwa) +
     theme_classic() +
-    theme(text = element_text(size = 20))
-  # p <- ggplot(data = cwa_map, aes_string(x = "DROUGHT", y = sub_rsk)) + geom_point()
+    theme(text = element_text(size = 20)) +
+    guides(color = "none") +
+    scale_color_viridis(option = "cividis") +
+    lims(x = c(0, 100), y = c(0, 100))
   print(p)
-  })
+  }), padding = c(0, 0, 75, 0), scrollable = TRUE)
 ```
 
 Information Sources

@@ -37,35 +37,29 @@ library(leaflet.extras)
 library(leaflet)
 library(sf)
 library(tidyverse)
-library(shiny)
+# library(shiny)
 library(viridis)
-library(RColorBrewer)
+# library(RColorBrewer)
 library(miniUI)
 library(leaflegend)
+library(ggtext)
+library(data.table)
+
+state_map <- read_sf("outputs/state_estimates")# TODO: include estimates in next update (empty files for now)
 
 cwa_map <- read_sf("outputs/cwa_estimates")
 cwa_map <- cwa_map %>% 
-  mutate_at(vars(TO_RECEP:DROUGHT), list(~pnorm(.) * 100)) # convert z-scores to percentile ranks
+  mutate_at(vars(c(TO_RECEP:ALL_READY), c(COLD:DROUGHT)), list(~pnorm(.) * 100)) # convert z-scores to percentile ranks
 cwa_map$CWA <- as.character(cwa_map$CWA)
 cwa_map <- st_transform(cwa_map, "+proj=longlat +datum=WGS84")
 
 fips_map <- read_sf("outputs/county_estimates")
 fips_map <- fips_map %>% 
-  mutate_at(vars(TO_RECEP:DROUGHT), list(~pnorm(.) * 100)) # convert z-scores to percentile ranks
+  mutate_at(vars(c(TO_RECEP:ALL_READY), c(COLD:DROUGHT)), list(~pnorm(.) * 100)) # convert z-scores to percentile ranks
 fips_map$CWA <- as.character(fips_map$CWA)
 fips_map <- st_transform(fips_map, "+proj=longlat +datum=WGS84")
 
-# map <- readOGR("outputs/cwa_estimates")
-# map@data <- map@data %>%
-#   mutate_at(vars(TO_RECEP:DROUGHT), funs(pnorm(.) * 100)) # convert z-scores to percentile ranks
-# map$CWA <- as.character(map$CWA)
-# 
-# fips_map <- readOGR("outputs/county_estimates")
-# fips_map@data <- fips_map@data %>%
-#   mutate_at(vars(TO_RECEP:DROUGHT), funs(pnorm(.) * 100)) # convert z-scores to percentile ranks
-# fips_map$CWA <- as.character(fips_map$CWA)
-
-survey_data <- read.csv("outputs/base_survey_data.csv")
+survey_data <- fread("outputs/base_survey_data.csv")
 
 # Define demographic groups
 survey_data$Gender <- factor(survey_data$MALE, labels = c("Female", "Male"))
@@ -80,7 +74,7 @@ survey_data$Area <- factor(survey_data$rural, labels = c("Urban", "Suburban", "R
 survey_data$Understanding <- car::recode(survey_data$und_weather, "1 = 'High'; 2 = 'Moderate'; 3:5 = 'Low'")
 survey_data$Understanding <- factor(survey_data$Understanding, levels = c("Low", "Moderate", "High"))
 survey_data$Year <- factor(survey_data$survey_year)
-survey_data$Hazard <- factor(survey_data$survey_hazard)
+survey_data$Hazard <- factor(survey_data$survey_hazard, levels = c("WX", "TC"), labels = c("Severe", "Tropical"))
 
 survey_data$All <- "All"
 groups <- c("All" = "All", 
@@ -90,32 +84,31 @@ groups <- c("All" = "All",
             "Age Group" = "Age",
             "NWS Region" = "Region", 
             "Education" = "Education", 
-            # "Numeracy" = "Numeracy", 
+            # "Numeracy" = "Numeracy", # TODO: fix this in base survey file
             "Geographic Area (Urban/Rural)" = "Area", 
             "Understanding of Extreme Weather" = "Understanding", 
             "Survey Year" = "Year",
             "Survey Hazard" = "Hazard")
 
-variable_data <- read_csv("variable_data_new.csv")
+variable_data <- fread("variable_data_new.csv")
 ```
 
 Composite Scales
 ======================================================================
 
-Sidebar{.sidebar data-width=300}
+Sidebar{.sidebar data-width=200}
 -----------------------------------------------------------------------
 <br/>
 <br/>
-
-**Instructions.** Select a measure from the drop down menu (above) to see an *average person percentile (APP) rank* estimate for each County Warning Area (CWA). These estimates compare the average percentile rank of adults who live in a CWA to the distribution of adults in the US. For example, a APP rank estimate of 62 indicates that, on average, adults who live in that CWA are above the national average; they score higher than 62% of adults across the country. If you click on the map, a box will open that provides more information on the CWA, such as the percentile rank of the CWA in comparison to other CWAs. A plot will also come up below that maps the distribution of APP ranks by county within the CWA you select.
+**Welcome!** You made it to WxDash, and interactive platform that provides access to data from the Extreme Weather and Society Project, which is run by researchers at the University of Oklahoma's [Institute for Public Policy Research and Analysis (IPPRA)](https://ou.edu/ippra). The data for the project come from yearly surveys that measure forecast and warning reception, comprehension, and response among adults (age 18+) that match the demographic characteristics of the US population. The statistics we present on this page are estimates that we calculate using a small area estimation technique called Multilevel Regression and Postratification (MRP). Navigate to the [About](https://crcm.shinyapps.io/WxDashExp/#section-about) tab to learn more about the project and the estimates. Click [here](https://dataverse.harvard.edu/dataverse/wxsurvey) to access the survey data.
 <br/>
 <br/>
 <br/>
-**Notes.** The data for this project come from the University of Oklahoma Extreme Weather and Society Survey (Wx Survey), a yearly survey of US adults that match the demographic characteristics of the US population. The statistics we present are estimates that we calculate using a small area estimation technique called Multilevel Regression and Postratification (MRP). Navigate to the [About](https://crcm.shinyapps.io/WxDashExp/#section-about) tab to learn more about the project and the estimates. Click [here](https://dataverse.harvard.edu/dataverse/wxsurvey) to access the survey data.
+**Instructions for this page.** Select a measure from the drop down menu (above) to see an *average person percentile (APP) rank* estimate for each County Warning Area (CWA). These estimates compare the average percentile rank of adults who live in a CWA to the distribution of adults in the US. For example, a APP rank estimate of 62 indicates that, on average, adults who live in that CWA are above the national average; they score higher than 62% of adults across the country. If you click on the map, a box will open that provides more information on the CWA, such as the percentile rank of the CWA in comparison to other CWAs. A plot will also come up below that maps the distribution of APP ranks by county within the CWA you select.
 <br/>
 <br/>
 <br/>
-Contact [Joe Ripberger](mailto:jtr@ou.edu) or [Carol Silva](mailto:clsilva@ou.edu) if you have questions about the data or project.
+Contact [Joe Ripberger](mailto:jtr@ou.edu) or [Makenzie Krocak](mailto:mjkrocak@ou.edu) if you have questions about the data or project.
 
 Row {data-height=500}{.tabset .tabset-fade}
 -----------------------------------------------------------------------
@@ -148,7 +141,7 @@ output$to_map <- renderLeaflet({
                                       "Percentile rank of the average person in the County: ", round(to_variable, 2), "<br>",
                                       "Percentile rank of the County: ", round(pnorm(scale(to_variable)) * 100, 2)))
   to_map <- leaflet() %>%
-    setView(lng = -97, lat = 40, zoom = 4) %>%
+    setView(lng = -97, lat = 40, zoom = 5) %>%
     addTiles() %>%
     addPolygons(
       data = cwa_map,
@@ -161,7 +154,7 @@ output$to_map <- renderLeaflet({
       weight = 2,
       popup = cwa_popup,
       layerId = ~CWA,
-      group = "CWA") %>% 
+      group = "CWA Estimates") %>% 
     addPolygons(
       data = fips_map,
       fillColor = ~variable_map_pal(to_variable),
@@ -173,18 +166,23 @@ output$to_map <- renderLeaflet({
       weight = 0.5,
       popup = fips_popup,
       layerId = ~FIPS,
-      group = "County") %>% 
+      group = "County Estimates") %>% 
     addPolylines(
       data = cwa_map,
       group = "CWA Borders",
       color = "white",
-      weight = 2) %>%
+      weight = 3) %>%
+    addPolylines(
+      data = state_map,
+      group = "State Borders",
+      color = "white",
+      weight = 3) %>%
     addLayersControl(
-      baseGroups = c("State", "CWA", "County"),
+      baseGroups = c("CWA Estimates", "County Estimates"), # TODO: include state estimates in next update
       overlayGroups = c("State Borders", "CWA Borders"),
       options = layersControlOptions(collapsed = FALSE)) %>%
     showGroup("CWA") %>%
-    hideGroup("State") %>%
+    # hideGroup("State") %>%
     hideGroup("County") %>% 
     hideGroup("CWA Borders") %>% 
     hideGroup("State Borders") %>% 
@@ -224,7 +222,7 @@ output$hu_map <- renderLeaflet({
                                       "Percentile rank of the average person in the County: ", round(hu_variable, 2), "<br>",
                                       "Percentile rank of the County: ", round(pnorm(scale(hu_variable)) * 100, 2)))
   to_map <- leaflet() %>%
-    setView(lng = -97, lat = 40, zoom = 4) %>%
+    setView(lng = -97, lat = 40, zoom = 5) %>%
     addTiles() %>%
     addPolygons(
       data = cwa_map,
@@ -237,7 +235,7 @@ output$hu_map <- renderLeaflet({
       weight = 2,
       popup = cwa_popup,
       layerId = ~CWA,
-      group = "CWA") %>% 
+      group = "CWA Estimates") %>% 
     addPolygons(
       data = fips_map,
       fillColor = ~variable_map_pal(hu_variable),
@@ -249,18 +247,23 @@ output$hu_map <- renderLeaflet({
       weight = 0.5,
       popup = fips_popup,
       layerId = ~FIPS,
-      group = "County") %>% 
+      group = "County Estimates") %>% 
     addPolylines(
       data = cwa_map,
       group = "CWA Borders",
       color = "white",
-      weight = 2) %>%
+      weight = 3) %>%
+    addPolylines(
+      data = state_map,
+      group = "State Borders",
+      color = "white",
+      weight = 3) %>%
     addLayersControl(
-      baseGroups = c("State", "CWA", "County"),
+      baseGroups = c("CWA Estimates", "County Estimates"), # TODO: include state estimates in next update
       overlayGroups = c("State Borders", "CWA Borders"),
       options = layersControlOptions(collapsed = FALSE)) %>%
     showGroup("CWA") %>%
-    hideGroup("State") %>%
+    # hideGroup("State") %>%
     hideGroup("County") %>% 
     hideGroup("CWA Borders") %>% 
     hideGroup("State Borders") %>% 
@@ -283,107 +286,6 @@ Coming soon!
 ### WRN
 
 Coming soon!
-
-Row {data-height=200}
------------------------------------------------------------------------
-
-### Survey Questions
-
-```{r}
-R1 <- data.frame(
-  question = c("[Please tell us how strongly you agree with the following statements about tornado WARNINGS:] I receive all tornado warnings that are issued for my area.",
-               "[Please tell us how strongly you agree with the following statements about tornado WARNINGS:] I receive most tornado warnings that are issued for my area.",
-               "[Please tell us how strongly you agree with the following statements about tornado WARNINGS:] I receive tornado warnings as soon as they are issued for my area.",
-               "[How confident are you that you would receive tornado warnings in the following situations:] If you are sleeping?",
-               "[How confident are you that you would receive tornado warnings in the following situations:] If you are in a car?",
-               "[How confident are you that you would receive tornado warnings in the following situations:] If you are at work or school?",
-               "[How confident are you that you would receive tornado warnings in the following situations:] If you are at a store?",
-               "[How confident are you that you would receive tornado warnings in the following situations:] If you are with a small group of friends or family?",
-               "[How confident are you that you would receive tornado warnings in the following situations:] If you are with a large group of friends or family?",
-               "[If a tornado WARNING were issued for your area tomorrow at [RANDOM TIME], how confident are you that you would receive the warning:] 1:00 AM – 9:00 AM",
-               "[If a tornado WARNING were issued for your area tomorrow at [RANDOM TIME], how confident are you that you would receive the warning:] 10:00 AM – 5:00 PM",
-               "[If a tornado WARNING were issued for your area tomorrow at [RANDOM TIME], how confident are you that you would receive the warning:] 6:00 PM – 12:00 AM"))
-
-R2 <- data.frame(
-  question = c("In general, do you understand the difference between watches and warnings?",
-               "How would you rate your understanding of tornado watches and warnings?",
-               "How would you rate your understanding of severe thunderstorm watches and warnings?",
-               "Forecasters, websites, and phone applications often use maps to display tornado watches and warnings. How would you rate your understanding of maps?",
-               "Forecasters, websites, and phone applications also use radar images to communicate tornado risk. How would you rate your understanding of radar images?",
-               "[If a tornado WARNING were issued for your area tomorrow at [RANDOM TIME], how confident are you that you would understand the warning:] 1:00 AM – 9:00 AM",
-               "[If a tornado WARNING were issued for your area tomorrow at [RANDOM TIME], how confident are you that you would understand the warning:] 10:00 AM – 5:00 PM",
-               "[If a tornado WARNING were issued for your area tomorrow at [RANDOM TIME], how confident are you that you would understand the warning:] 6:00 PM – 12:00 AM"))
-
-R3 <- data.frame(
-  question = c("This alert is issued when severe thunderstorms and tornadoes are possible in and near the area. It does not mean that they will occur. It only means they are possible. [Tornado Watch*, Tornado Warning, Don't Know]",
-               "This alert is used when a tornado is imminent. When this alert is issued, seek safe shelter immediately. [Tornado Watch, Tornado Warning*, Don't]",
-               "If the National Weather Service issues a tornado warning for your area, how much time do you have before the tornado arrives? [Less than 1 hour*, 1 to 24 hours, 1 to 3 days, More than 3 days]",
-               "If the National Weather Service issues a tornado watch for your area, how much time do you have before the tornado arrives? [Less than 1 hour, 1 to 24 hours*, 1 to 3 days, More than 3 days]",
-               "Approximately how large is the area included in an average tornado watch? [Around the size of a city, Around the size of a county, Around the size of multiple counties*, Around the size of a state*, Around the size of multiple states*]"))
-
-R4 <- data.frame(
-  question = c("[Please tell us how strongly you agree with the following statements about tornado WARNINGS:] If you have never received a tornado WARNING, please tell us how you think you will respond if you receive a WARNING in the future.",
-               "[Please tell us how strongly you agree with the following statements about tornado WARNINGS:] I always take protective action when tornado warnings are issued for my area.",
-               "[How confident are you that you would take protective action in response to tornado warnings in the following situations:] If you are sleeping?",
-               "[How confident are you that you would take protective action in response to tornado warnings in the following situations:] If you are in a car?",
-               "[How confident are you that you would take protective action in response to tornado warnings in the following situations:] If you are at work or school?",
-               "[How confident are you that you would take protective action in response to tornado warnings in the following situations:] If you are at a store?",
-               "[How confident are you that you would take protective action in response to tornado warnings in the following situations:] If you are with a small group of friends or family?",
-               "[How confident are you that you would take protective action in response to tornado warnings in the following situations:] If you are with a large group of friends or family?",
-               "[If a tornado WARNING were issued for your area tomorrow at [RANDOM TIME], how confident are you that you would take protective action in response to the warning:] 1:00 AM – 9:00 AM",
-               "[If a tornado WARNING were issued for your area tomorrow at [RANDOM TIME], how confident are you that you would take protective action in response to the warning:] 10:00 AM – 5:00 PM",
-               "[If a tornado WARNING were issued for your area tomorrow at [RANDOM TIME], how confident are you that you would take protective action in response to the warning:] 6:00 PM – 12:00 AM"))
-
-
-R5 <- data.frame(
-  question = c("[Please tell us how strongly you agree with the following statements:] It is possible for most people in my area to prepare and to secure their property ahead of time for a tornado.",
-               "[Please tell us how strongly you agree with the following statements:] It is possible for most people in my area to develop a safety plan for how to deal with a tornado.",
-               "[Please tell us how strongly you agree with the following statements:] It is possible for most people in my area to protect themselves against a tornado.",
-               "[Please tell us how strongly you agree with the following statements:] It is possible for most people in my area to evacuate when necessary ahead of a tornado.",
-               "[Please tell us how strongly you agree with the following statements:] I feel that I can prepare and secure my property ahead of time for a tornado.",
-               "[Please tell us how strongly you agree with the following statements:] I have a safety plan for how to deal with a tornado.",
-               "[Please tell us how strongly you agree with the following statements:] I can protect myself against a tornado.",
-               "[Please tell us how strongly you agree with the following statements:] I can evacuate when necessary ahead of a tornado."))
-
-R6 <- data.frame(
-  question = c("[The next set of questions is about the variety of forecast information that you might receive when a hurricane threatens your location. Do you agree with the following statements?] I receive pretty much all of the information that is available for my location.",
-               "[The next set of questions is about the variety of forecast information that you might receive when a hurricane threatens your location. Do you agree with the following statements?] I receive new information about my location as soon as it is available."))
-
-composite_questions <- bind_rows(R1 %>% mutate(measure = "TO_RECEP"),
-                                 R2 %>% mutate(measure = "TO_SUB_COM"),
-                                 R3 %>% mutate(measure = "TO_OBJ_COM"),
-                                 R4 %>% mutate(measure = "TO_RESP"),
-                                 R5 %>% mutate(measure = "TO_EFFICAC"),
-                                 R6 %>% mutate(measure = "HU_RECEP"))
-
-DT::renderDataTable({
-  # data <- composite_questions %>%
-  #   filter(measure == input$hu_variable) %>%
-  #   select(question)
-  dt1 <- DT::datatable(composite_questions %>%
-                       filter(measure == input$to_variable) %>%
-                       select(question),
-                # filter = "top",
-                # selection = "single",
-                rownames = FALSE,
-                # style = "bootstrap",
-                class = "compact",
-                options = list(dom = "Blrtip", pageLength = 10),
-                colnames = c("Question Text" = "question"))
-  dt2 <- DT::datatable(composite_questions %>%
-                       filter(measure == input$hu_variable) %>%
-                       select(question),
-                # filter = "top",
-                # selection = "single",
-                rownames = FALSE,
-                # style = "bootstrap",
-                class = "compact",
-                options = list(dom = "Blrtip", pageLength = 10),
-                colnames = c("Question Text" = "question"))
-  if (input$to_variable %in% c("TO_RECEP", "TO_SUB_COM", "TO_OBJ_COM", "TO_RESP", "TO_EFFICAC")) {print(dt1)}
-  # if (input$hu_variable %in% c("HU_RECEP")) {print(dt2)}
-  })
-```
 
 Risk Perceptions
 ======================================================================
@@ -577,12 +479,12 @@ selectInput(inputId = 'cwa', label = 'Select a CWA to highlight', choices = look
 cwa_map <- cwa_map %>%
   mutate(SCALE_PER_HEA = (pnorm(scale(cwa_map$PER_HEA)) * 100),
          SCALE_PER_DRO = (pnorm(scale(cwa_map$PER_DRO)) * 100),
-         SCALE_PER_COL = (pnorm(scale(cwa_map$PER_COL)) * 100) - COLD,
-         SCALE_PER_SNO = (pnorm(scale(cwa_map$PER_SNO)) * 100) - SNOW,
-         SCALE_PER_TOR = (pnorm(scale(cwa_map$PER_TOR)) * 100) - TORN,
-         SCALE_PER_FLO = (pnorm(scale(cwa_map$PER_FLO)) * 100) - FLOOD,
-         SCALE_PER_HUR = (pnorm(scale(cwa_map$PER_HUR)) * 100) - HURR,
-         SCALE_PER_FIR = (pnorm(scale(cwa_map$PER_FIR)) * 100) - FIRE)
+         SCALE_PER_COL = (pnorm(scale(cwa_map$PER_COL)) * 100),
+         SCALE_PER_SNO = (pnorm(scale(cwa_map$PER_SNO)) * 100),
+         SCALE_PER_TOR = (pnorm(scale(cwa_map$PER_TOR)) * 100),
+         SCALE_PER_FLO = (pnorm(scale(cwa_map$PER_FLO)) * 100),
+         SCALE_PER_HUR = (pnorm(scale(cwa_map$PER_HUR)) * 100),
+         SCALE_PER_FIR = (pnorm(scale(cwa_map$PER_FIR)) * 100))
 
 miniContentPanel(renderPlot({
   sub_name <- NA
@@ -619,7 +521,7 @@ miniContentPanel(renderPlot({
                aes_string(x = obj_name, y = sub_name), 
                color = "blue", fill = "blue", alpha = 0.3, size = 20) +
     geom_text(aes(label = CWA)) +
-    labs(x = "Objective Event Frequency", y = "Subjective Risk Perceptions", title = input$cwa) +
+    labs(x = "Objective Event Frequency\n(Percentile Rank of the CWA)", y = "Subjective Risk Perceptions\n(Percentile Rank of the CWA)", title = input$cwa) +
     theme_classic() +
     theme(text = element_text(size = 20)) +
     guides(color = "none") +
@@ -638,44 +540,28 @@ Sidebar {.sidebar data-width=300}
 <br/>
 
 ```{r}
-selectInput(inputId = 'att', label = 'Select a grouping', choices = groups)
+selectInput(inputId = 'source_group', label = 'Select a grouping', choices = groups)
 checkboxInput(inputId = 'check', label = 'Show text labels?', value = FALSE)
 ```
+
+Data on **information sources** come from the following survey questions:
+
+  - How much do you, personally, rely on the following sources of information about [severe|tropical] weather?
+  - Please indicate your level of trust in information about [severe|tropical] weather from each of the following organizations and groups.
+
+**Note.** Select the *Survey Hazard* grouping to see the difference across hazards.
 
 Row
 -----------------------------------------------------------------------
 
 ```{r}
-x <- reactive({
+rely_data <- reactive({
   survey_data %>%
-    drop_na(!!as.name(input$att)) %>%
-    group_by(!!as.name(input$att)) %>%
-    select(warn_how_br_rad:warn_how_phone) %>%
-    summarise_all(mean, na.rm = TRUE) %>%
-    gather(variable, value, -!!as.name(input$att)) %>%
-    mutate(value = value * 100) %>%
-    mutate(Source = recode(variable,
-                           "warn_how_br_rad" = "Broadcast\nRadio",
-                           "warn_how_wx_rad" = "Weather\nRadio",
-                           "warn_how_tv" = "Television",
-                           "warn_how_siren" = "Siren",
-                           "warn_how_int" = "Internet",
-                           "warn_how_soc" = "Social\nMedia",
-                           "warn_how_word" = "Word\nof Mouth",
-                           "warn_how_phone" = "Phone\nNotification")) %>%
-    mutate(Source = factor(Source,
-                        levels = c("Television", "Phone\nNotification", "Internet", "Siren", "Weather\nRadio",
-                                   "Broadcast\nRadio", "Word\nof Mouth", "Social\nMedia"))) %>%
-    mutate(l = round(value, 0))
-  })
-
-y <- reactive({
-  survey_data %>%
-    drop_na(!!as.name(input$att)) %>%
-    group_by(!!as.name(input$att)) %>%
+    drop_na(!!as.name(input$source_group)) %>%
+    group_by(!!as.name(input$source_group)) %>%
     select(wx_info1:wx_info8) %>%
     summarise_all(mean, na.rm = TRUE) %>%
-    gather(variable, value, -!!as.name(input$att)) %>%
+    gather(variable, value, -!!as.name(input$source_group)) %>%
     mutate(Source = recode(variable,
                            "wx_info1" = "Broadcast\nRadio",
                            "wx_info2" = "Weather\nRadio",
@@ -691,26 +577,51 @@ y <- reactive({
     mutate(l = round(value, 1))
   })
 
+trust_data <- reactive({
+  survey_data %>%
+    drop_na(!!as.name(input$source_group)) %>%
+    group_by(!!as.name(input$source_group)) %>%
+    select(nws_trust:fam_trust) %>%
+    summarise_all(mean, na.rm = TRUE) %>%
+    gather(variable, value, -!!as.name(input$source_group)) %>%
+    mutate(Source = recode(variable,
+                           "nws_trust" = "National\nWeather\nService",
+                           "lotv_trust" = "Regional\nor local TV\nstations",
+                           "natv_trust" = "National TV\nstations",
+                           "em_trust" = "State or\nlocal emergency\nmanagers",
+                           "fam_trust" = "Family, friends,\nneighbors, employers,\nco-workers, etc.")) %>%
+    mutate(Source = factor(Source,
+                        levels = c("National\nWeather\nService", 
+                                   "Regional\nor local TV\nstations", 
+                                   "National TV\nstations", 
+                                   "State or\nlocal emergency\nmanagers",
+                                   "Family, friends,\nneighbors, employers,\nco-workers, etc."))) %>%
+    mutate(l = round(value, 1))
+  })
+
 renderPlot({
-  p1 <- ggplot(x(), aes_string(x = "Source", y = "value", color = input$att, group = input$att, label = "l")) +
+  p1 <- ggplot(rely_data(), aes_string(x = "Source", y = "value", color = input$source_group, group = input$source_group, label = "l")) +
     geom_point(size = 9, position = position_dodge(width = 0.7)) +
-    theme_classic() +
-    theme(text = element_text(size = 18),
-          plot.title = element_text(size = 18)) +
-    labs(x = "Source", y = "Respondents (%)") +
-    ggtitle("How did you learn about the [most recent] tornado warning?\n") +
-    theme(plot.title = element_text(color = "grey30")) +
-    scale_color_viridis(discrete = TRUE)
-  p2 <- ggplot(y(), aes_string(x = "Source", y = "value", color = input$att, group = input$att, label = "l")) +
-    geom_point(size = 9, position = position_dodge(width = 0.7)) +
-    theme_classic() +
+    theme_minimal() +
     theme(text = element_text(size = 18),
           plot.title = element_text(size = 18)) +
     labs(x = "", y = "Mean Response") +
     scale_y_continuous(breaks = 1:5, labels = c("Not\nmuch (1)", "Little (2)", "Somewhat (3)", "Much (4)", "A great\ndeal (5)"), limits = c(1, 5)) +
-    ggtitle("How much do you rely on each of the following sources of information about extreme weather?\n") +
+    ggtitle("How much do you rely on each of the following sources of information about extreme weather?") +
     theme(plot.title = element_text(color = "grey30")) +
-    scale_color_viridis(discrete = TRUE)
+    scale_color_viridis(discrete = TRUE) +
+      theme(plot.title = element_textbox_simple(margin = margin(0, 0, 22, 0), fill = NA))
+  p2 <- ggplot(trust_data(), aes_string(x = "Source", y = "value", color = input$source_group, group = input$source_group, label = "l")) +
+    geom_point(size = 9, position = position_dodge(width = 0.7)) +
+    theme_minimal() +
+    theme(text = element_text(size = 18),
+          plot.title = element_text(size = 18)) +
+    labs(x = "", y = "Mean Response") +
+    scale_y_continuous(breaks = 1:5, labels = c("No\nTrust (1)", "Low (2)", "Moderate (3)", "High (4)", "Complete\nTrust (5)"), limits = c(1, 5)) +
+    ggtitle("Please indicate your level of trust in information about hurricanes from each of the following organizations and groups.") +
+    theme(plot.title = element_text(color = "grey30")) +
+    scale_color_viridis(discrete = TRUE) +
+    theme(plot.title = element_textbox_simple(margin = margin(0, 0, 22, 0), fill = NA))
   p <- cowplot::plot_grid(p1, p2, align = "v", ncol = 1)
   print(p)
 
@@ -724,424 +635,6 @@ renderPlot({
  
   }, height = 900)
 ```
-
-<!-- Experiments -->
-<!-- ====================================================================== -->
-
-<!-- Row {.tabset data-height=1000} -->
-<!-- ----------------------------------------------------------------------- -->
-
-<!-- ### Probability Language -->
-<!-- This experiment explores public perceptions about the words and phrases that forecasters commonly use to communicate probability. The data come from WX18 & WX19. Review the [reference reports](http://risk.ou.edu/downloads/news/WX18-Reference-Report.pdf) for more information and complete question wording. Some key findings from this experiment include: -->
-
-<!--   - Public interpretations of probabilistic words and phrases are very inconsistent. -->
-<!--   - Forecasters can reduce this inconsistency by including basic qualifying expressions: -->
-<!--       - Phrases like ***there is a low chance of severe thunderstorms*** generate more consistant interpretations than phases like ***severe thunderstorms are possible***. -->
-
-<!-- ```{r} -->
-<!-- selectInput(inputId = 'prob_event', label = 'Select an event type', choices = c('Severe Thunderstorms' = 'Severe Thunderstorms', 'Tornadoes' = 'Tornadoes')) -->
-<!-- ``` -->
-
-<!-- Forecasters use different phrases to explain the possibility that [severe thunderstorms|tornadoes] will happen. When you see the following phrases, what percent chance comes to mind? -->
-
-<!-- ```{r} -->
-<!-- svs_data1 <- survey_data %>% -->
-<!--   filter(prob_event == "severe thunderstorms") %>% -->
-<!--   select(risk_chan, risk_poss, risk_may, risk_exp) %>% -->
-<!--   gather() %>% -->
-<!--   na.omit %>% -->
-<!--   mutate(prob_event = "Severe Thunderstorms", value = as.numeric(value)) -->
-<!-- svs_data1 <- transform(svs_data1, key = reorder(key, value)) -->
-
-<!-- tor_data1 <- survey_data %>% -->
-<!--   filter(prob_event == "tornadoes") %>% -->
-<!--   select(risk_chan, risk_poss, risk_may, risk_exp) %>% -->
-<!--   gather() %>% -->
-<!--   na.omit %>% -->
-<!--   mutate(prob_event = "Tornadoes", value = as.numeric(value)) -->
-<!-- tor_data1 <- transform(tor_data1, key = reorder(key, value)) -->
-
-<!-- words_data1 <- bind_rows(svs_data1, tor_data1) -->
-
-<!-- svs_data2 <- survey_data %>% -->
-<!--   filter(prob_event == "severe thunderstorm") %>% -->
-<!--   select(ext_low, vry_low, vry_small, prty_low, small, low, slight, remote, medium, moderate, -->
-<!--          good, high, large, prty_high, vry_high, sig, ext_high) %>% -->
-<!--   gather() %>% -->
-<!--   na.omit %>% -->
-<!--   mutate(prob_event = "Severe Thunderstorms") -->
-<!-- svs_data2 <- transform(svs_data2, key = reorder(key, value)) -->
-
-<!-- tor_data2 <- survey_data %>% -->
-<!--   filter(prob_event == "tornado") %>% -->
-<!--   select(ext_low, vry_low, vry_small, prty_low, small, low, slight, remote, medium, moderate, -->
-<!--          good, high, large, prty_high, vry_high, sig, ext_high) %>% -->
-<!--   gather() %>% -->
-<!--   na.omit %>% -->
-<!--   mutate(prob_event = "Tornadoes") -->
-<!-- tor_data2 <- transform(tor_data2, key = reorder(key, value)) -->
-
-<!-- words_data2 <- bind_rows(svs_data2, tor_data2) -->
-
-<!-- renderPlot({ -->
-<!--     d1 <- words_data1[words_data1$prob_event == input$prob_event, ] -->
-<!--     p1 <- ggplot(d1, aes(x = key, y = value)) + -->
-<!--       geom_boxplot(aes(fill = key), alpha = 0.8, size = 0.3, outlier.size = -1) + -->
-<!--       guides(fill = FALSE, color = FALSE) + -->
-<!--       coord_flip() + -->
-<!--       labs(x = "", y = "Response (Percent)", title = "No Qualifying Expressions [WX18]") + -->
-<!--       theme_classic() + -->
-<!--       theme(text = element_text(size = 16), -->
-<!--             plot.title = element_text(size = 14)) + -->
-<!--       scale_fill_viridis(discrete = TRUE) + -->
-<!--       scale_y_continuous(breaks = seq(0, 100, 10), labels = paste0(seq(0, 100, 10), "%")) + -->
-<!--       scale_x_discrete(labels = c("risk_chan" = "There is a chance of [...]", -->
-<!--                                   "risk_poss" = "[...] are possible", -->
-<!--                                   "risk_may" = "[...] may occur", -->
-<!--                                   "risk_exp" = "[...] are expected")) -->
-<!--     d2 <- words_data2[words_data2$prob_event == input$prob_event, ] -->
-<!--     p2 <- ggplot(d2, aes(x = key, y = value)) + -->
-<!--       geom_boxplot(aes(fill = key), alpha = 0.8, size = 0.3, outlier.size = -1) + -->
-<!--       guides(fill = FALSE, color = FALSE) + -->
-<!--       coord_flip() + -->
-<!--       labs(x = "", y = "Response (Percent)", title = "Qualifying Expressions [WX19]") + -->
-<!--       theme_classic() + -->
-<!--       theme(text = element_text(size = 16), -->
-<!--             plot.title = element_text(size = 14)) + -->
-<!--       scale_fill_viridis(discrete = TRUE) + -->
-<!--       scale_y_continuous(breaks = seq(0, 100, 10), labels = paste0(seq(0, 100, 10), "%")) + -->
-<!--       scale_x_discrete(labels = c("ext_low" = "Extremely low chance of [...]", -->
-<!--                                   "vry_low" = "Very low chance of [...]", -->
-<!--                                   "vry_small" = "Extremely small chance of [...]", -->
-<!--                                   "prty_low" = "Pretty low chance of [...]", -->
-<!--                                   "small" = "Small chance of [...]", -->
-<!--                                   "remote" = "Remote chance of [...]", -->
-<!--                                   "low" = "Low chance of [...]", -->
-<!--                                   "slight" = "Slight chance of [...]", -->
-<!--                                   "medium" = "Medium chance of [...]", -->
-<!--                                   "moderate" = "Moderate chance of [...]", -->
-<!--                                   "good" = "Good chance of [...]", -->
-<!--                                   "large" = "Large chance of [...]", -->
-<!--                                   "high" = "High chance of [...]", -->
-<!--                                   "prty_high" = "Pretty high chance of [...]", -->
-<!--                                   "vry_high" = "Very high chance of [...]", -->
-<!--                                   "sig" = "Significant chance of [...]", -->
-<!--                                   "ext_high" = "Extremely high chance of [...]")) -->
-<!--     p <- cowplot::plot_grid(p1, p2, align = "v", ncol = 1, rel_heights = c(0.4, 1)) -->
-<!--     print(p) -->
-<!--     }, height = 720) -->
-<!-- ``` -->
-
-<!-- ### Probability vs. Impact -->
-<!-- This experiment examines the relative influence of forecast storm intensity (impact) vs. probability on public judgement of tornado risk. The data come from WX17. Review the [reference report](http://risk.ou.edu/downloads/news/WX17-Reference-Report.pdf) for more information and complete question wording. Some key findings from this experiment include: -->
-
-<!--   - Both forecast intensity and probability information affect public risk assessments. -->
-<!--   - On average, people are slightly more sensitive to probability information than intensity information. -->
-<!--   - Different groups of people use this information in different ways. For example, groups with high numeracy (risk literacy) are more likely to rely on information about intensity and probability when assessing risk than groups with low numeracy. -->
-
-<!-- ```{r} -->
-<!-- selectInput(inputId = 'neg_group', label = 'Select a grouping', choices = groups) -->
-<!-- ``` -->
-
-<!-- We would like to know how YOU weigh the probability and intensity of extreme weather events. Please rate the risk of the following tornado scenarios: A [5:100]% chance of a [Light (EF-0)|Moderate (EF-1)|Significant (EF-2)|Severe (EF-3)|Devastating (EF-4)|Incredible (EF-5)] tornado. -->
-
-<!-- ```{r} -->
-<!-- exp_data <- survey_data %>% drop_na(extprob_a_prob) -->
-<!-- prop_data_long <- select(exp_data, p_id, extprob_a_prob, extprob_b_prob, extprob_c_prob) %>% pivot_longer(extprob_a_prob:extprob_c_prob, names_to = "Prob_Time", values_to = "Prob") -->
-<!-- int_data_long <- select(exp_data, extprob_a_int, extprob_b_int, extprob_c_int) %>% pivot_longer(extprob_a_int:extprob_c_int, names_to = "Int_Time", values_to = "Int") -->
-<!-- perc_data_long <- select(exp_data, extprob_a, extprob_b, extprob_c) %>% pivot_longer(extprob_a:extprob_c, names_to = "Perc_Time", values_to = "Perc") -->
-<!-- long_data <- bind_cols(prop_data_long, int_data_long, perc_data_long) -->
-<!-- long_data <- left_join(long_data, exp_data %>% select(p_id, data.frame(groups)$groups), by = "p_id") -->
-<!-- long_data$Int <- factor(long_data$Int, levels = c("a Light (EF-0)", -->
-<!--                                                 "a Moderate (EF-1)", -->
-<!--                                                 "a Significant (EF-2)", -->
-<!--                                                 "a Severe (EF-3)", -->
-<!--                                                 "a Devastating (EF-4)", -->
-<!--                                                 "an Incredible (EF-5)"), -->
-<!--                         labels = 0:5) -->
-
-<!-- long_data$Int <- as.numeric(as.character(long_data$Int)) -->
-
-<!-- renderPlot({ -->
-<!--   p1 <- ggplot(long_data %>% drop_na(input$neg_group), aes_string(y = "Perc", x = "Int", color = input$neg_group)) + -->
-<!--     geom_smooth(method = "lm") + -->
-<!--     labs(x = "Forecast Intensity (EF-Scale)", y = "Mean Response (Risk Rating)") + -->
-<!--     theme_classic() + -->
-<!--     theme(text = element_text(size = 18)) + -->
-<!--     coord_cartesian(ylim = c(2.25, 4)) + -->
-<!--     scale_color_viridis(discrete = TRUE) -->
-<!--   p2 <- ggplot(long_data %>% drop_na(input$neg_group), aes_string(y = "Perc", x = "Prob", color = input$neg_group)) + -->
-<!--     geom_smooth(method = "lm") + -->
-<!--     labs(x = "Forecast Probability (Percent Chance)", y = "Mean Response (Risk Rating)") + -->
-<!--     theme_classic() + -->
-<!--     theme(text = element_text(size = 18)) + -->
-<!--     coord_cartesian(ylim = c(2.25, 4)) + -->
-<!--     scale_color_viridis(discrete = TRUE) -->
-<!--   p <- cowplot::plot_grid(p1, p2, align = "v", nrow = 1) -->
-<!--   print(p) -->
-<!--   }, height=700) -->
-<!-- ``` -->
-
-<!-- ### Risk Categories -->
-<!-- This experiment examines public perceptions about the risk phrases (categories) that some forecasters use to communicate the probability of tornadoes. The data come from WX19. Review the [reference report](http://risk.ou.edu/downloads/news/WX19-Reference-Report.pdf) for more information and complete question wording. Some key findings from this experiment include: -->
-
-<!--   - Public perceptions of probability and risk are somewhat inconsistent with these risk categories. -->
-<!--       - People may misinterpret forecast probability and risk if given a risk category alone with no more information. -->
-<!--   - The most common sources of confusion are ***marginal vs. slight*** and ***enhanced vs. moderate*** risk. -->
-<!--   - Different groups of people interpret probability and risk phrases in different ways. -->
-
-<!-- ```{r} -->
-<!-- selectInput(inputId = 'spc_group', label = 'Select a grouping', choices = groups) -->
-<!-- ``` -->
-
-<!-- ```{r} -->
-<!-- s <- reactive({ -->
-<!--   survey_data %>% -->
-<!--   select(!!as.name(input$spc_group), risk_word, risk_perc) %>% -->
-<!--   drop_na(!!as.name(input$spc_group), risk_word, risk_perc) %>% -->
-<!--   gather(variable, value, -c(!!as.name(input$spc_group), risk_word)) %>% -->
-<!--   mutate(cat = factor(risk_word, -->
-<!--                       levels = c("SLIGHT RISK", "MODERATE RISK", "HIGH RISK"), -->
-<!--                       labels = c("Slight", "Moderate", "High"))) -->
-<!--   }) -->
-
-<!-- z <- reactive({ -->
-<!--   survey_data %>% -->
-<!--     select(!!as.name(input$spc_group), spc_mar:spc_hig) %>% -->
-<!--     gather(variable, value, -!!as.name(input$spc_group)) %>% -->
-<!--     group_by(!!as.name(input$spc_group), variable, value) %>% -->
-<!--     drop_na(!!as.name(input$spc_group), variable, value) %>% -->
-<!--     summarise(n = n()) %>% -->
-<!--     mutate(p = n/sum(n) * 100) %>% -->
-<!--     mutate(rank = factor(value)) %>% -->
-<!--     mutate(cat = factor(variable, -->
-<!--                         levels = c("spc_mar", "spc_sli", "spc_enh", "spc_mod", "spc_hig"), -->
-<!--                         labels = c("Marginal", "Slight", "Enhanced", "Moderate", "High"))) -->
-<!--   }) -->
-
-<!-- renderPlot({ -->
-<!--   p1 <- ggplot(s(), aes_string(x = "cat", y = "value", color = input$spc_group)) + -->
-<!--     stat_summary(size = 1.5, position = position_dodge(width = 0.5)) + -->
-<!--     labs(y = "Mean Response", x = "SPC Risk Category") + -->
-<!--     theme_classic() + -->
-<!--     theme(text = element_text(size = 18), -->
-<!--           plot.title = element_text(size = 16)) + -->
-<!--     scale_color_viridis(discrete = TRUE) + -->
-<!--     coord_cartesian(ylim = c(0, 60)) + -->
-<!--     coord_flip() + -->
-<!--     ggtitle("If there is a [SLIGHT|MODERATE|HIGH] risk of tornadoes in your area tomorrow evening, how likely is it that a tornado will hit within 25 miles of your residence?\n") + -->
-<!--     theme(plot.title = element_text(color = "grey30")) -->
-<!--     p2 <- ggplot(z(), aes(x = cat, y = p, fill = rank)) + -->
-<!--     geom_bar(stat = "identity", position = position_dodge()) + -->
-<!--     labs(y = "Respondents (%)", x = "SPC Risk Category", fill = "Ranking") + -->
-<!--     theme_classic() + -->
-<!--     theme(text = element_text(size = 18), -->
-<!--           plot.title = element_text(size = 16 )) + -->
-<!--     scale_fill_viridis(discrete = TRUE) + -->
-<!--     facet_wrap(as.formula(paste("~", input$spc_group))) + -->
-<!--     ggtitle("Can you rank these phrases from one (lowest risk) to five (highest risk)?\n") + -->
-<!--     theme(plot.title = element_text(color = "grey30")) -->
-<!--   p <- cowplot::plot_grid(p1, p2, align = "v", ncol = 1) -->
-<!--   print(p) -->
-<!--   }, height=750) -->
-<!-- ``` -->
-
-<!-- ### Warning Perceptions & Preferences -->
-<!-- This experiment explores public perceptions and preferences about common trade offs that forecasters make when issuing warnings. The data come from WX17. Review the [reference report](http://risk.ou.edu/downloads/news/WX17-Reference-Report.pdf) for more information and complete question wording. Some key findings from this experiment include: -->
-
-<!--   - People generally agree with the ways that forecasters are balancing trade offs. -->
-<!--   - On average, people seem to value: -->
-<!--       - Event detection and warning at the possible expense of more false alarms. -->
-<!--       - Forecast accuracy at the possible expense of less notice (lead time). -->
-<!--       - More information at the possible expense of too much complexity. -->
-
-<!-- ```{r} -->
-<!-- selectInput(inputId = 'trade_group', label = 'Select a grouping', choices = groups) -->
-<!-- ``` -->
-
-<!-- ```{r} -->
-<!-- a <- reactive({ -->
-<!--   survey_data %>% -->
-<!--     select(!!as.name(input$trade_group), mi_fa_should:mi_fa_do) %>% -->
-<!--     gather(variable, value, -!!as.name(input$trade_group)) %>% -->
-<!--     group_by(!!as.name(input$trade_group), variable, value) %>% -->
-<!--     drop_na(!!as.name(input$trade_group), variable, value) %>% -->
-<!--     summarise(n = n()) %>% -->
-<!--     mutate(p = n/sum(n) * 100) %>% -->
-<!--     ungroup() %>% -->
-<!--     mutate(ques = factor(variable, labels = c("What DO forecasters do?", "What SHOULD forecasters do?"))) %>% -->
-<!--     mutate(resp = factor(value, labels = c("Minimize the possibility that a tornado\nwill occur without a warning", -->
-<!--                                          "Lean towards limiting the possibility that\na tornado will occur without a warning", -->
-<!--                                          "Lean towards limiting the possibility of false alarms", -->
-<!--                                          "Minimize the possibility of false alarms"))) -->
-<!--   }) -->
-
-<!-- b <- reactive({ -->
-<!--   survey_data %>% -->
-<!--     select(!!as.name(input$trade_group), leadtime_do:leadtime_should) %>% -->
-<!--     gather(variable, value, -!!as.name(input$trade_group)) %>% -->
-<!--     group_by(!!as.name(input$trade_group), variable, value) %>% -->
-<!--     drop_na(!!as.name(input$trade_group), variable, value) %>% -->
-<!--     summarise(n = n()) %>% -->
-<!--     mutate(p = n/sum(n) * 100) %>% -->
-<!--     ungroup() %>% -->
-<!--     mutate(ques = factor(variable, labels = c("What DO forecasters do?", "What SHOULD forecasters do?"))) %>% -->
-<!--     mutate(resp = factor(value, labels = c("Maximize lead time", -->
-<!--                                          "Lean towards more lead time", -->
-<!--                                          "Lean towards more precision/accuracy", -->
-<!--                                          "Maximize precision/accuracy"))) -->
-<!--   }) -->
-
-<!-- e <- reactive({ -->
-<!--   survey_data %>% -->
-<!--     select(!!as.name(input$trade_group), uncert_do:uncert_should) %>% -->
-<!--     gather(variable, value, -!!as.name(input$trade_group)) %>% -->
-<!--     group_by(!!as.name(input$trade_group), variable, value) %>% -->
-<!--     drop_na(!!as.name(input$trade_group), variable, value) %>% -->
-<!--     summarise(n = n()) %>% -->
-<!--     mutate(p = n/sum(n) * 100) %>% -->
-<!--     ungroup() %>% -->
-<!--     mutate(ques = factor(variable, labels = c("What DO forecasters do?", "What SHOULD forecasters do?"))) %>% -->
-<!--     mutate(resp = factor(value, labels = c("Maximize simplicity", -->
-<!--                                          "Lean towards simplicity", -->
-<!--                                          "Lean towards more information", -->
-<!--                                          "Maximize information"))) -->
-<!--   }) -->
-
-<!-- renderPlot({ -->
-<!--   p1 <- ggplot(a(), aes_string(x = "p", y = "resp", color = input$trade_group)) + -->
-<!--     geom_point(size = 8) + -->
-<!--     labs(x = "Respondents (%)", y = "") + -->
-<!--     theme_classic() + -->
-<!--     theme(text = element_text(size = 18), -->
-<!--           plot.title = element_text(size = 14)) + -->
-<!--     scale_color_viridis(discrete = TRUE) + -->
-<!--     facet_wrap(~ques) + -->
-<!--     xlim(0, 50) + -->
-<!--     ggtitle("How [DO|SHOULD] forecasters in your area balance the possibility of false alarms vs.the possibility that a tornado will occur without a warning?\n") + -->
-<!--     theme(plot.title = element_text(color = "grey30")) -->
-<!--   p2 <- ggplot(b(), aes_string(x = "p", y = "resp", color = input$trade_group)) + -->
-<!--     geom_point(size = 8) + -->
-<!--     labs(x = "Respondents (%)", y = "") + -->
-<!--     theme_classic() + -->
-<!--     theme(text = element_text(size = 18), -->
-<!--           plot.title = element_text(size = 14)) + -->
-<!--     scale_color_viridis(discrete = TRUE) + -->
-<!--     facet_wrap(~ques) + -->
-<!--     xlim(0, 50) + -->
-<!--     ggtitle("How [DO|SHOULD] forecasters in your area balance considerations of lead time vs. accuracy?\n") + -->
-<!--     theme(plot.title = element_text(color = "grey30")) -->
-<!--   p3 <- ggplot(e(), aes_string(x = "p", y = "resp", color = input$trade_group)) + -->
-<!--     geom_point(size = 8) + -->
-<!--     labs(x = "Respondents (%)", y = "") + -->
-<!--     theme_classic() + -->
-<!--     theme(text = element_text(size = 18), -->
-<!--           plot.title = element_text(size = 14)) + -->
-<!--     scale_color_viridis(discrete = TRUE) + -->
-<!--     facet_wrap(~ques) + -->
-<!--     xlim(0, 50) + -->
-<!--     ggtitle("How [DO|SHOULD] forecasters in your area balance considerations of simplicity vs. more information?\n") + -->
-<!--     theme(plot.title = element_text(color = "grey30")) -->
-<!--   p <- cowplot::plot_grid(p1, p2, p3, align = "v", ncol = 1) -->
-<!--   print(p) -->
-<!--   }, height=750) -->
-<!-- ``` -->
-
-<!-- ### Warning Time of Day -->
-<!-- This experiment explores the impact of time of day on tornado reception, understanding, and/or responsiveness. The data come from WX18 & WX19. Review the [reference report](http://risk.ou.edu/downloads/news/WX19-Reference-Report.pdf) for more information and complete question wording. Some key findings from this experiment include: -->
-
-<!--   - Time of day has a relatively strong impact on public confidence in warning reception, understanding, and response. -->
-<!--   - Warning reception and response are especially sensitive to time of day. -->
-<!--       - People are least confident that they with get and take protective action in response to tornado warnings in late evening and early morning hours. -->
-
-<!-- ```{r} -->
-<!-- survey_data$rand_morn <- paste(substr(as.character(survey_data$rand_morn), 2, 5), "AM") -->
-<!-- survey_data$rand_morn <- ifelse(survey_data$rand_morn == "NA AM", NA, survey_data$rand_morn) -->
-<!-- time_data <- bind_cols(survey_data %>% -->
-<!--                  select(p_id, rec_morn, rec_aft, rec_eve) %>% -->
-<!--                  gather(a, reception, -p_id), -->
-<!--                survey_data %>% -->
-<!--                  select(und_morn, und_aft, und_eve) %>% -->
-<!--                  gather(b, comprehension), -->
-<!--                survey_data %>% -->
-<!--                  select(resp_morn, resp_aft, resp_eve) %>% -->
-<!--                  gather(c, response), -->
-<!--                survey_data %>% -->
-<!--                  select(rand_morn, rand_aft, rand_eve) %>% -->
-<!--                  gather(d, time)) %>% -->
-<!--   select(-c(a, b, c, d)) %>% -->
-<!--   mutate(time_fac = factor(time, levels = c( -->
-<!--     "12:00 AM (midnight)", "1:00 AM", "2:00 AM", "3:00 AM", "4:00 AM", "5:00 AM", "6:00 AM", -->
-<!--     "7:00 AM", "8:00 AM", "9:00 AM", "10:00 AM", "11:00 AM", "12:00 PM (noon)", "1:00 PM", -->
-<!--     "2:00 PM", "3:00 PM", "4:00 PM", "5:00 PM", "6:00 PM", "7:00 PM", "8:00 PM", "9:00 PM", -->
-<!--     "10:00 PM", "11:00 PM"))) -->
-
-<!-- sliderInput(inputId = 'time_group', label = 'Select an hour of the day', min = 0, max = 23, value = 12) -->
-<!-- ``` -->
-
-<!-- For some people the time of day influences tornado warning reception, understanding, and/or responsiveness. If a tornado WARNING were issued for your area tomorrow at [TIME], how confident are you that you would [receive|understand|take protective action in response to] the warning? -->
-
-<!-- ```{r} -->
-<!-- time_data_group_rec <- time_data %>% -->
-<!--   group_by(time_fac, reception) %>% -->
-<!--   drop_na(time_fac, reception) %>% -->
-<!--     summarise(n = n()) %>% -->
-<!--     mutate(p = n/sum(n) * 100) %>% -->
-<!--   ungroup() %>% -->
-<!--   mutate(time_num = rep(0:23, each = 5)) %>% -->
-<!--   mutate(l = paste0(round(p, 1), "%")) %>% -->
-<!--   mutate(variable = "Receive") %>% -->
-<!--   mutate(value = reception) -->
-
-<!-- time_data_group_comp <- time_data %>% -->
-<!--   group_by(time_fac, comprehension) %>% -->
-<!--   drop_na(time_fac, comprehension) %>% -->
-<!--     summarise(n = n()) %>% -->
-<!--     mutate(p = n/sum(n) * 100) %>% -->
-<!--   ungroup() %>% -->
-<!--   mutate(time_num = rep(0:23, each = 5)) %>% -->
-<!--   mutate(l = paste0(round(p, 1), "%")) %>% -->
-<!--   mutate(variable = "Understand") %>% -->
-<!--   mutate(value = comprehension) -->
-
-<!-- time_data_group_resp <- time_data %>% -->
-<!--   group_by(time_fac, response) %>% -->
-<!--   drop_na(time_fac, response) %>% -->
-<!--     summarise(n = n()) %>% -->
-<!--     mutate(p = n/sum(n) * 100) %>% -->
-<!--   ungroup() %>% -->
-<!--   mutate(time_num = rep(0:23, each = 5)) %>% -->
-<!--   mutate(l = paste0(round(p, 1), "%")) %>% -->
-<!--   mutate(variable = "Take Protective Action") %>% -->
-<!--   mutate(value = response) -->
-
-<!-- time_data_group <- bind_rows(time_data_group_rec, time_data_group_comp, time_data_group_resp) -->
-<!-- time_data_group$variable <- factor(time_data_group$variable, levels = c("Receive", "Understand", "Take Protective Action")) -->
-
-<!-- q <- reactive({ -->
-<!--   time_data_group %>% -->
-<!--     filter(time_num == input$time_group) -->
-<!--     }) -->
-
-<!-- renderPlot({ -->
-<!--   p <- ggplot(q(), aes_string(x = "value", y = "p", label = "l", fill = "variable")) + -->
-<!--     geom_bar(stat = "identity") + -->
-<!--     geom_text(size = 6, vjust = -0.2, color = "black") + -->
-<!--     labs(y = "Respondents (%)", x = "") + -->
-<!--     theme_classic() + -->
-<!--     theme(text = element_text(size = 18), -->
-<!--           plot.title = element_text(size = 14), -->
-<!--           axis.text.x = element_text(size = 12)) + -->
-<!--     ggtitle(q()$time_fac) + -->
-<!--     ylim(0, 45) + -->
-<!--     theme(plot.title = element_text(color = "grey30")) + -->
-<!--     scale_fill_viridis(discrete = TRUE) + -->
-<!--     facet_wrap(~variable) + -->
-<!--     guides(fill = FALSE) + -->
-<!--     scale_x_continuous(breaks = 1:5, labels = c("Not at all\nconfident", "Not very\nconfident", "Somewhat\nconfident", "Very\nconfident", "Extremely\nconfident")) -->
-<!--   print(p) -->
-<!--   }, height=700) -->
-<!-- ``` -->
 
 Explore Surveys
 ======================================================================
@@ -1200,23 +693,31 @@ renderPlot({
     geom_text(position = position_dodge(width = .9), size = 5, vjust = -0.2, color = "black") +
     labs(x = "Response", y = "Respondents (%)", fill = "Group", 
          title = variable_data[variable_data$id == select_react() %>% pull(var = id), ]$question,
-         caption = variable_data[variable_data$id == select_react() %>% pull(var = id), ]$id) +
+         caption = paste0(
+           "[",
+           variable_data[variable_data$id == select_react() %>% pull(var = id), ]$response_options, 
+           "]")) +
     theme_classic(base_size = 20) +
     scale_fill_viridis(discrete = TRUE) +
     scale_y_continuous(minor_breaks = NULL, 
                        expand = expansion(mult = c(0, 0.2))) +
     # scale_x_discrete(labels = variable_data[variable_data$id == select_react() %>% pull(var = id), ]$label) +
-        theme(title = element_text(size = 14))
-  
+    theme(title = element_text(size = 14)) +
+    theme(plot.title = element_textbox_simple(margin = margin(0, 0, 22, 0), fill = NA))
+
   p2 <- ggplot(survey_data %>% drop_na(input$exp_group, select_react() %>% pull(var = id)), 
                aes_string(y = select_react() %>% pull(var = id), x = as.factor(input$exp_group), fill = input$exp_group)) +
     geom_boxplot() +
     labs(x = "Group", y = "Response", fill = "Group", 
          title = variable_data[variable_data$id == select_react() %>% pull(var = id), ]$question,
-         caption = variable_data[variable_data$id == select_react() %>% pull(var = id), ]$id) +
+         caption = paste0(
+           "[",
+           variable_data[variable_data$id == select_react() %>% pull(var = id), ]$response_options, 
+           "]")) +
     theme_classic(base_size = 20) +
     scale_fill_viridis(discrete = TRUE) +
-    theme(title = element_text(size = 14))
+    theme(title = element_text(size = 14)) +
+    theme(plot.title = element_textbox_simple(margin = margin(0, 0, 22, 0), fill = NA))
   
   if (select_react() %>% pull(var = id) %in% names(cat)) {print(p1)}
   if (select_react() %>% pull(var = id) %in% names(num)) {print(p2)}
@@ -1294,10 +795,14 @@ renderPlot({
     stat_summary(size = 1.5, geom = "line", position = position_dodge(width = 0.25)) +
     labs(x = "Year", y = "Mean", fill = "Group",
          title = variable_data[variable_data$id == ts_select_react() %>% pull(var = id), ]$question,
-         caption = variable_data[variable_data$id == ts_select_react() %>% pull(var = id), ]$id) +
+                  caption = paste0(
+           "[",
+           variable_data[variable_data$id == select_react() %>% pull(var = id), ]$response_options, 
+           "]")) +
     theme_classic(base_size = 20) +
     theme(title = element_text(size = 14)) +
-    scale_color_viridis(discrete = TRUE)
+    scale_color_viridis(discrete = TRUE) +
+    theme(plot.title = element_textbox_simple(margin = margin(0, 0, 22, 0), fill = NA))
   ps <- p + lims(y = c(min(ts_data[, ts_select_react() %>% pull(var = id)], na.rm = TRUE), max(ts_data[, ts_select_react() %>% pull(var = id)], na.rm = TRUE)))
   if (input$scale == FALSE) {print(p)}
   if (input$scale == TRUE) {print(ps)}
@@ -1343,76 +848,139 @@ ts_select_react <- reactive({
   })
 ```
 
-Demographics
+
+Demographic Vulnerabilities
 ======================================================================
 
-Sidebar {.sidebar data-width=300}
+Sidebar{.sidebar data-width=200}
 -----------------------------------------------------------------------
 <br/>
 <br/>
+**Notes.** Data from the CDC's Social Vulnerability Index (SVI), which uses this set of 15 US census variables to help officials identify communities that may need support in preparing for hazards or recovering from disasters. For data and more information about the [CDC SVI website](https://www.atsdr.cdc.gov/placeandhealth/svi/index.html).
+<br/>
+<br/>
+<br/>
 
-```{r}
-selectInput(inputId = 'dem_variable', label = 'Select a demographic', choices = c('Percentage of persons below poverty' = 'EP_POV',
-                                                                                  'Percentage of civilian (age 16+) unemployed' = 'EP_UNEMP',
-                                                                                  'Per capita income' = 'EP_PCI',
-                                                                                  'Percentage of persons with no high school diploma (age 25+)' = 'EP_NOHSDP',
-                                                                                  'Percentage of persons aged 65 and older' = 'EP_AGE65',
-                                                                                  'Percentage of persons aged 17 and younger' = 'EP_AGE17',
-                                                                                  'Percentage of civilian noninstitutionalized population with a disability' = 'EP_DISABL',
-                                                                                  'Percentage of single parent households with children under 18' = 'EP_SNGPNT',
-                                                                                  'Percentage minority (all persons except white, non-Hispanic)' = 'EP_MINRTY',
-                                                                                  'Percentage of persons (age 5+) who speak English less than well' = 'EP_LIMENG',
-                                                                                  'Percentage of housing in structures with 10 or more units' = 'EP_MUNIT',
-                                                                                  'Percentage of mobile homes' = 'EP_MOBILE',
-                                                                                  'Percentage of occupied housing units with more people than rooms' = 'EP_CROWD',
-                                                                                  'Percentage of households with no vehicle available' = 'EP_NOVEH',
-                                                                                  'Percentage of persons in institutionalized group quarters' = 'EP_GROUPQ'))
-```
-
-**Notes.** Data from the CDC's Social Vulnerability Index (SVI), which uses this set of 15 US census variables to help officials identify communities that may need support in preparing for hazards or recovering from disasters. For data and more information about the [CDC SVI website](https://svi.cdc.gov/index.html). See also:
-
-- Flanagan, B., Hallisey, E., Adams, E., & Lavery, A. (2018). [Measuring Community Vulnerability to Natural and Anthropogenic Hazards: The Centers for Disease Control and Prevention's Social Vulnerability Index](https://svi.cdc.gov/Documents/Publications/CDC_ATSDR_SVI_Materials/JEH2018.pdf). Journal of Environmental Health, 80(10), 34-36.
-
-Row
+Row {data-height=500}{.tabset .tabset-fade}
 -----------------------------------------------------------------------
 
+### CDC SVI
+
 ```{r}
-
-# dem_map_cols <- viridis(100)
-# # dem_map_pal <- colorNumeric(palette = dem_map_cols, domain = c(0, 100))
-# output$demo_map <- renderLeaflet({
-#   fips_map$demplot <- fips_map@data[, input$dem_variable]
-#   dem_map_pal <- colorNumeric(palette = dem_map_cols, domain = c(min(fips_map$demplot, na.rm = TRUE), max(fips_map$demplot, na.rm = TRUE)), na.color = NA)
-#   p_popup <- with(fips_map@data, paste0(COUNTYNAME, ", County ", "(", CWA, ")", "<br>",
-#                                    "Estimate: ", round(demplot, 2)))
-#   l <- leaflet(fips_map) %>%
-#     setView(lng = -97, lat = 40, zoom = 4) %>%
-#     addTiles(options = providerTileOptions(minZoom = 3, maxZoom = 10)) %>%
-#     addFullscreenControl() %>%
-#     clearShapes() %>%
-#     addPolygons(
-#       fillColor = ~dem_map_pal(demplot),
-#       color = "white",
-#       fillOpacity = 0.9,
-#       stroke = TRUE,
-#       smoothFactor = 0.8,
-#       weight = 0.5,
-#       popup = p_popup,
-#       layerId = ~FIPS,
-#       highlight = highlightOptions(weight = 5, color = "grey", fillOpacity = 0.9, bringToFront = TRUE)) %>%
-#     addLegend(position = 'bottomright', pal = dem_map_pal, values = ~demplot, opacity = 0.7, title = "ACS<br>Estimate") %>%
-#     addPolygons(data = map, fill = FALSE, weight = 2, color = "white", group = "CWA") %>%
-#     addLayersControl(overlayGroups = "CWA", options = layersControlOptions(collapsed = FALSE))
-#   })
-# leafletOutput(outputId = "demo_map", height = 700)
-
+div(style = "font-size: 11px",
+    selectInput(inputId = 'dem_variable', label = 'Select a demographic or theme', choices = c(
+      'Percentage of persons below poverty' = 'POV',
+      'Percentage of civilian (age 16+) unemployed' = 'UNEMP',
+      'Per capita income' = 'PCI',
+      'Percentage of persons with no high school diploma (age 25+)' = 'NOHSDP',
+      'Percentage of persons aged 65 and older' = 'AGE65',
+      'Percentage of persons aged 17 and younger' = 'AGE17',
+      'Percentage of civilian noninstitutionalized population with a disability' = 'DISABL',
+      'Percentage of single parent households with children under 18' = 'SNGPNT',
+      'Percentage minority (all persons except white, non-Hispanic)' = 'MINRTY',
+      'Percentage of persons (age 5+) who speak English less than well' = 'LIMENG',
+      'Percentage of housing in structures with 10 or more units' = 'MUNIT',
+      'Percentage of mobile homes' = 'MOBILE',
+      'Percentage of occupied housing units with more people than rooms' = 'CROWD',
+      'Percentage of households with no vehicle available' = 'NOVEH',
+      'Percentage of persons in institutionalized group quarters' = 'GROUPQ',
+      'Theme 1 (z-score): Socioeconomic status (below poverty, unemployed, income, no high school diploma)' = 'THEME1',
+      'Theme 2 (z-score): Household composition & disability (aged 65 or older, aged 17 or younger, older than age 5 with a disability, single-parent households)' = 'THEME2',
+      'Theme 3 (z-score): Minority status & language (minority, speak English “less than well”)' = 'THEME3',
+      'Theme 4 (z-score): Housing type & transportation (multi-unit structures, mobile homes, crowding, no vehicle, group quarters)' = 'THEME4',
+      'Overall Social Vulnerability (z-score)' = 'THEMES'),
+      width = "600px")
+    )
 ```
+
+```{r}
+output$dem_map <- renderLeaflet({
+  variable_map_pal <- colorNumeric(palette = viridis(100), domain = fips_map %>% pull(input$dem_variable))
+  cwa_map$dem_variable <- cwa_map %>% pull(input$dem_variable)
+  fips_map$dem_variable <- fips_map %>% pull(input$dem_variable)
+  cwa_popup <- with(cwa_map, paste0("NWS ", City, ", ", ST, " (", CWA,")", "<br>",
+                                    "Estimate: ", round(dem_variable, 2), "<br>",
+                                    "Percentile rank of the CWA: ", round(pnorm(scale(dem_variable)) * 100, 2)))
+  fips_popup <- with(fips_map, paste0(NAME, ", County ", "(", CWA, ")", "<br>",
+                                      "Estimate: ", round(dem_variable, 2), "<br>",
+                                      "Percentile rank of the County: ", round(pnorm(scale(dem_variable)) * 100, 2)))
+  dem_map <- leaflet() %>%
+    setView(lng = -97, lat = 40, zoom = 5) %>%
+    addTiles() %>%
+    addPolygons(
+      data = cwa_map,
+      fillColor = ~variable_map_pal(dem_variable),
+      highlight = highlightOptions(weight = 5, color = "grey", fillOpacity = 0.9, bringToFront = TRUE),
+      color = "white",
+      fillOpacity = 0.9,
+      stroke = TRUE,
+      smoothFactor = 0.8,
+      weight = 2,
+      popup = cwa_popup,
+      layerId = ~CWA,
+      group = "CWA Estimates") %>%
+    addPolygons(
+      data = fips_map,
+      fillColor = ~variable_map_pal(dem_variable),
+      highlight = highlightOptions(weight = 5, color = "grey", fillOpacity = 0.9, bringToFront = TRUE),
+      color = "white",
+      fillOpacity = 0.9,
+      stroke = TRUE,
+      smoothFactor = 0.8,
+      weight = 0.5,
+      popup = fips_popup,
+      layerId = ~FIPS,
+      group = "County Estimates") %>%
+    addPolylines(
+      data = cwa_map,
+      group = "CWA Borders",
+      color = "white",
+      weight = 3) %>%
+    addPolylines(
+      data = state_map,
+      group = "State Borders",
+      color = "white",
+      weight = 3) %>%
+    addLayersControl(
+      baseGroups = c("CWA Estimates", "County Estimates"), # TODO: include state estimates in next update
+      overlayGroups = c("State Borders", "CWA Borders"),
+      options = layersControlOptions(collapsed = FALSE)) %>%
+    showGroup("County Estimates") %>%
+    hideGroup("CWA Borders") %>%
+    # hideGroup("State") %>%
+    hideGroup("CWA Estimates") %>%
+    hideGroup("State Borders") %>%
+    addLegend(
+      data = fips_map,
+      position = 'bottomright',
+      pal = variable_map_pal,
+      values = ~dem_variable,
+      opacity = 0.7,
+      title = "Estimate")
+  })
+
+miniContentPanel(leafletOutput(outputId = "dem_map"), padding = c(0, 0, 75, 0), scrollable = TRUE)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 About
 ======================================================================
 **Motivation.** Members of the weather enterprise, including National Weather Service (NWS) forecasters, emergency managers, broadcast meteorologists, and private partners have many responsibilities, ranging from the issuance of forecasts and warnings during high impact weather events to outreach and public education campaigns during less turbulent periods. Effective education and risk communication across this range of responsibilities requires knowledge of the communities that enterprise members serve. This includes knowledge about atmospheric and climate conditions in communities as well as knowledge about the people in communities. Enterprise members often have access to a wide variety data that facilitate the first type of knowledge, but relatively little data on the populations they serve. As a result, it can be difficult to answer basic questions, such as what risks do the people in my community worry about or neglect? Do they generally receive, understand, and respond to forecasts and warnings? What sources of information do they rely on and trust? Absent reliable answers to these questions, it is challenging to develop public education and risk communication strategies that match the characteristics of the community.
 
-**Methodology.** This project works to overcome some these challenges by developing a database of community statistics and this interactive platform that provides some of this information. The approach we use leverages population scale data from the Severe Weather and Society Survey (Wx Survey) and known sub-population characteristics from the US Census to estimate statistics of interest to the weather enterprise. Run by the [University of Oklahoma Center for Risk and Crisis Management (CRCM)](http://crcm.ou.edu), the Wx Survey is a yearly survey of the US public that includes two types of questions: (1) baseline questions that measure core concepts such as risk perceptions, forecast and warning reception, comprehension, and response, hazard comprehension, and trust in information sources; and (2) one-time questions and experiments that address various topics, such as the impact of uncertainty and probabilistic information on risk judgments and protective action decision making. See [Silva et al. 2017](http://risk.ou.edu/downloads/news/WX17-Reference-Report.pdf), [Silva et al. 2018](http://risk.ou.edu/downloads/news/WX18-Reference-Report.pdf), and [Silva et al. 2019](http://risk.ou.edu/downloads/news/WX19-Reference-Report.pdf) for information about each survey we conduct, including a complete listing of questions. For more information about the composite measures we produce from these surveys and the steps we take to ensure that the measures are reliable, see:
+**Methodology.** This project works to overcome some these challenges by developing a database of community statistics and this interactive platform that provides some of this information. The approach we use leverages population scale data from the Severe Weather and Society Survey (Wx Survey) and known sub-population characteristics from the US Census to estimate statistics of interest to the weather enterprise. Run by the [University of Oklahoma Institute for Public Policy Research and Analysis (IPPRA)](https://ou.edu/ippra), the Wx Survey is a yearly survey of the US public that includes two types of questions: (1) baseline questions that measure core concepts such as risk perceptions, forecast and warning reception, comprehension, and response, hazard comprehension, and trust in information sources; and (2) one-time questions and experiments that address various topics, such as the impact of uncertainty and probabilistic information on risk judgments and protective action decision making. Visit our [data repository](https://dataverse.harvard.edu/dataverse/wxsurvey) for more information about the surveys. For more information about the composite measures we produce from these surveys and the steps we take to ensure that the measures are reliable, see:
     
 - [Measuring Tornado Warning Reception, Comprehension, and Response in the United States](https://doi.org/10.1175/WCAS-D-19-0015.1)
 
@@ -1420,6 +988,8 @@ Large population surveys such as the Wx Survey provide valuable information abou
 
 - [Exploring Community Differences in Tornado Warning Reception, Comprehension, and Response Across the United States](https://doi.org/10.1175/BAMS-D-19-0064.1)
 - [Geographic Distributions of Extreme Weather Risk Perceptions in the United States](https://doi.org/10.1111/risa.13569)
+
+**Note.** These data, like most survey data, come from non-probability samples that are not necessarily representative of the entire US population. Use cation when making inferences and drawing conclusions.
 
 **Support.** Funding for this project comes from multiple sources. The University of Oklahoma provides support for data collection. The US Office of Weather and Air Quality (OWAQ) provides support for  data analysis, programming, and maintenance.
 

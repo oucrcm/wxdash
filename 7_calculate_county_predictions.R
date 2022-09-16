@@ -15,24 +15,24 @@ census_data$FIPS_RPL_THEME3 <- scale(census_data$FIPS_RPL_THEME3)
 census_data$FIPS_RPL_THEME4 <- scale(census_data$FIPS_RPL_THEME4)
 
 # Load Models  -------------------------
-county_to_recep_fit <- readRDS(paste0(outputs, "county_models/fips_to_recep_fit.Rds"))
-county_hu_recep_fit <- readRDS(paste0(outputs, "county_models/fips_hu_recep_fit.Rds"))
-county_to_subj_comp_fit <- readRDS(paste0(outputs, "county_models/fips_to_subj_comp_fit.Rds"))
-county_hu_subj_comp_fit <- readRDS(paste0(outputs, "county_models/fips_hu_subj_comp_fit.Rds"))
-county_to_obj_comp_fit <- readRDS(paste0(outputs, "county_models/fips_to_obj_comp_fit.Rds"))
-county_hu_obj_comp_fit <- readRDS(paste0(outputs, "county_models/fips_hu_obj_comp_fit.Rds"))
-county_to_resp_fit <- readRDS(paste0(outputs, "county_models/fips_to_resp_fit.Rds"))
-county_hu_resp_fit <- readRDS(paste0(outputs, "county_models/fips_hu_resp_fit.Rds"))
-county_to_eff_fit <- readRDS(paste0(outputs, "county_models/fips_to_eff_fit.Rds"))
-county_heat_fit <- readRDS(paste0(outputs, "county_models/fips_heat_fit.Rds"))
-county_drought_fit <- readRDS(paste0(outputs, "county_models/fips_drought_fit.Rds"))
-county_cold_fit <- readRDS(paste0(outputs, "county_models/fips_cold_fit.Rds"))
-county_snow_fit <- readRDS(paste0(outputs, "county_models/fips_snow_fit.Rds"))
-county_torn_fit <- readRDS(paste0(outputs, "county_models/fips_torn_fit.Rds"))
-county_flood_fit <- readRDS(paste0(outputs, "county_models/fips_flood_fit.Rds"))
-county_hurr_fit <- readRDS(paste0(outputs, "county_models/fips_hurr_fit.Rds"))
-county_fire_fit <- readRDS(paste0(outputs, "county_models/fips_fire_fit.Rds"))
-county_all_ready_fit <- readRDS(paste0(outputs, "county_models/fips_all_ready_fit.Rds"))
+fips_to_recep_fit <- readRDS(paste0(outputs, "county_models/fips_to_recep_fit.Rds"))
+fips_hu_recep_fit <- readRDS(paste0(outputs, "county_models/fips_hu_recep_fit.Rds"))
+fips_to_subj_comp_fit <- readRDS(paste0(outputs, "county_models/fips_to_subj_comp_fit.Rds"))
+fips_hu_subj_comp_fit <- readRDS(paste0(outputs, "county_models/fips_hu_subj_comp_fit.Rds"))
+fips_to_obj_comp_fit <- readRDS(paste0(outputs, "county_models/fips_to_obj_comp_fit.Rds"))
+fips_hu_obj_comp_fit <- readRDS(paste0(outputs, "county_models/fips_hu_obj_comp_fit.Rds"))
+fips_to_resp_fit <- readRDS(paste0(outputs, "county_models/fips_to_resp_fit.Rds"))
+fips_hu_resp_fit <- readRDS(paste0(outputs, "county_models/fips_hu_resp_fit.Rds"))
+fips_to_eff_fit <- readRDS(paste0(outputs, "county_models/fips_to_eff_fit.Rds"))
+fips_heat_fit <- readRDS(paste0(outputs, "county_models/fips_heat_fit.Rds"))
+fips_drought_fit <- readRDS(paste0(outputs, "county_models/fips_drought_fit.Rds"))
+fips_cold_fit <- readRDS(paste0(outputs, "county_models/fips_cold_fit.Rds"))
+fips_snow_fit <- readRDS(paste0(outputs, "county_models/fips_snow_fit.Rds"))
+fips_torn_fit <- readRDS(paste0(outputs, "county_models/fips_torn_fit.Rds"))
+fips_flood_fit <- readRDS(paste0(outputs, "county_models/fips_flood_fit.Rds"))
+fips_hurr_fit <- readRDS(paste0(outputs, "county_models/fips_hurr_fit.Rds"))
+fips_fire_fit <- readRDS(paste0(outputs, "county_models/fips_fire_fit.Rds"))
+fips_all_ready_fit <- readRDS(paste0(outputs, "county_models/fips_all_ready_fit.Rds"))
 
 # FIPS Estimates -------------------------
 to_recep_predictions <- census_data %>%
@@ -177,6 +177,37 @@ cnty_shp <- left_join(cnty_shp, cwa_cnty_shp %>% select(CWA, FIPS) %>% st_drop_g
 cnty_shp <- cnty_shp %>% filter(!CWA %in% c("PPG", "SJU", "GUM", "HFO", "AFC", "AFG", "AJK")) # No census data
 cnty_shp <- left_join(cnty_shp, all_predictions, by = "FIPS") %>% filter(is.na(CWA) == FALSE)
 
+# Include SVI Data ----------------------------------------
+svi_data <- census_data %>%
+  select(FIPS, 
+         POV = FIPS_EP_POV,  
+         UNEMP = FIPS_EP_UNEMP,   
+         PCI = FIPS_EP_PCI,    
+         NOHSDP = FIPS_EP_NOHSDP, 
+         AGE65 = FIPS_EP_AGE65,
+         AGE17 = FIPS_EP_AGE17,    
+         DISABL = FIPS_EP_DISABL,  
+         SNGPNT = FIPS_EP_SNGPNT,   
+         MINRTY = FIPS_EP_MINRTY,  
+         LIMENG = FIPS_EP_LIMENG,  
+         MUNIT = FIPS_EP_MUNIT,   
+         MOBILE = FIPS_EP_MOBILE,  
+         CROWD = FIPS_EP_CROWD,   
+         NOVEH = FIPS_EP_NOVEH,  
+         GROUPQ = FIPS_EP_GROUPQ,  
+         UNINSUR = FIPS_EP_UNINSUR,  
+         THEME1 = FIPS_RPL_THEME1,
+         THEME2 = FIPS_RPL_THEME2,
+         THEME3 = FIPS_RPL_THEME3,
+         THEME4 = FIPS_RPL_THEME4,
+         THEMES = FIPS_RPL_THEMES) %>% 
+  mutate(THEME1 = c(THEME1),
+         THEME2 = c(THEME2),
+         THEME3 = c(THEME3),
+         THEME4 = c(THEME4)) %>% 
+  distinct(FIPS, .keep_all = TRUE)
+cnty_shp <- left_join(cnty_shp, svi_data, by = "FIPS")
+
 # Include Event Data ----------------------------------------
 cnty_storm_data <- read_csv(paste0(outputs, "base_county_storm_data.csv"))
 cnty_shp <- left_join(cnty_shp, cnty_storm_data, by = "FIPS")
@@ -185,3 +216,5 @@ cnty_shp <- cnty_shp %>% select(FIPS, everything())
 # Write Shapefile ----------------------------------------
 cnty_shp <- ms_simplify(cnty_shp, keep = 0.05)
 st_write(cnty_shp, paste0(outputs, "county_estimates"), "county_estimates", driver = "ESRI Shapefile", append = FALSE)
+
+

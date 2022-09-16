@@ -174,6 +174,37 @@ cwa_shp <- cwa_shp %>%
 
 cwa_shp <- left_join(cwa_shp, all_predictions, by = "CWA")
 
+# Include SVI Data ----------------------------------------
+svi_data <- census_data %>%
+  select(CWA, 
+         POV = CWA_EP_POV,  
+         UNEMP = CWA_EP_UNEMP,   
+         PCI = CWA_EP_PCI,    
+         NOHSDP = CWA_EP_NOHSDP, 
+         AGE65 = CWA_EP_AGE65,
+         AGE17 = CWA_EP_AGE17,    
+         DISABL = CWA_EP_DISABL,  
+         SNGPNT = CWA_EP_SNGPNT,   
+         MINRTY = CWA_EP_MINRTY,  
+         LIMENG = CWA_EP_LIMENG,  
+         MUNIT = CWA_EP_MUNIT,   
+         MOBILE = CWA_EP_MOBILE,  
+         CROWD = CWA_EP_CROWD,   
+         NOVEH = CWA_EP_NOVEH,  
+         GROUPQ = CWA_EP_GROUPQ,  
+         UNINSUR = CWA_EP_UNINSUR,  
+         THEME1 = CWA_RPL_THEME1,
+         THEME2 = CWA_RPL_THEME2,
+         THEME3 = CWA_RPL_THEME3,
+         THEME4 = CWA_RPL_THEME4,
+         THEMES = CWA_RPL_THEMES) %>% 
+  mutate(THEME1 = c(THEME1),
+         THEME2 = c(THEME2),
+         THEME3 = c(THEME3),
+         THEME4 = c(THEME4)) %>% 
+  distinct(CWA, .keep_all = TRUE)
+cwa_shp <- left_join(cwa_shp, svi_data, by = "CWA")
+
 # Include Event Data ----------------------------------------
 cwa_storm_data <- read_csv(paste0(outputs, "base_cwa_storm_data.csv"))
 cwa_shp <- left_join(cwa_shp, cwa_storm_data, by = "CWA")
@@ -182,3 +213,5 @@ cwa_shp <- cwa_shp %>% select(CWA, everything())
 # Write Shapefile ----------------------------------------
 cwa_shp <- ms_simplify(cwa_shp, keep = 0.05)
 st_write(cwa_shp, paste0(outputs, "cwa_estimates"), "cwa_estimates", driver = "ESRI Shapefile", append = FALSE)
+
+

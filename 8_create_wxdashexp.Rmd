@@ -99,14 +99,11 @@ Composite Scales
 Sidebar{.sidebar data-width=200}
 -----------------------------------------------------------------------
 <br/>
+**Welcome!**<br/>
+You made it to WxDash, and interactive platform that provides access to data from the Extreme Weather and Society Project, which is run by researchers at the University of Oklahoma's [Institute for Public Policy Research and Analysis (IPPRA)](https://ou.edu/ippra). The data for the project come from yearly surveys that measure forecast and warning reception, comprehension, and response among adults (age 18+) that match the demographic characteristics of the US population. The statistics we present on this page are estimates that we calculate using a small area estimation technique called Multilevel Regression and Postratification (MRP). Navigate to the [About](https://crcm.shinyapps.io/WxDashExp/#section-about) tab to learn more about the project and the estimates. Click [here](https://dataverse.harvard.edu/dataverse/wxsurvey) to access the survey data.
 <br/>
-**Welcome!** You made it to WxDash, and interactive platform that provides access to data from the Extreme Weather and Society Project, which is run by researchers at the University of Oklahoma's [Institute for Public Policy Research and Analysis (IPPRA)](https://ou.edu/ippra). The data for the project come from yearly surveys that measure forecast and warning reception, comprehension, and response among adults (age 18+) that match the demographic characteristics of the US population. The statistics we present on this page are estimates that we calculate using a small area estimation technique called Multilevel Regression and Postratification (MRP). Navigate to the [About](https://crcm.shinyapps.io/WxDashExp/#section-about) tab to learn more about the project and the estimates. Click [here](https://dataverse.harvard.edu/dataverse/wxsurvey) to access the survey data.
-<br/>
-<br/>
-<br/>
-**Instructions for this page.** Select a measure from the drop down menu (above) to see an *average person percentile (APP) rank* estimate for each County Warning Area (CWA). These estimates compare the average percentile rank of adults who live in a CWA to the distribution of adults in the US. For example, a APP rank estimate of 62 indicates that, on average, adults who live in that CWA are above the national average; they score higher than 62% of adults across the country. If you click on the map, a box will open that provides more information on the CWA, such as the percentile rank of the CWA in comparison to other CWAs. A plot will also come up below that maps the distribution of APP ranks by county within the CWA you select.
-<br/>
-<br/>
+**Instructions for this page.**<br/>
+Select a measure from the drop down menu (above) to see an *average person percentile (APP) rank* estimate for each County Warning Area (CWA). These estimates compare the average percentile rank of adults who live in a CWA to the distribution of adults in the US. For example, a APP rank estimate of 62 indicates that, on average, adults who live in that CWA are above the national average; they score higher than 62% of adults across the country. If you click on the map, a box will open that provides more information on the CWA, such as the percentile rank of the CWA in comparison to other CWAs. A plot will also come up below that maps the distribution of APP ranks by county within the CWA you select.
 <br/>
 Contact [Joe Ripberger](mailto:jtr@ou.edu) or [Makenzie Krocak](mailto:mjkrocak@ou.edu) if you have questions about the data or project.
 
@@ -293,8 +290,6 @@ Risk Perceptions
 Sidebar {.sidebar data-width=300}
 -----------------------------------------------------------------------
 <br/>
-<br/>
-
 ```{r}
 selectInput(inputId = 'event', label = 'Select a type of event', choices = c(
   'Extreme Heat Waves' = 'PER_HEA',
@@ -307,8 +302,8 @@ selectInput(inputId = 'event', label = 'Select a type of event', choices = c(
   'Wildfires' = 'PER_FIR'),
   selected = "PER_DRO")
 ```
-
-Data on **risk perceptions** come from the following survey questions: Thinking about all four seasons (winter, summer, spring, and fall), how do you rate the risk of the following extreme weather events to you and the people in your area?
+**Notes.**<br/>
+Data on ***risk perceptions*** come from the following survey questions: Thinking about all four seasons (winter, summer, spring, and fall), how do you rate the risk of the following extreme weather events to you and the people in your area?
 
   - Extreme heat waves
   - Droughts
@@ -319,10 +314,7 @@ Data on **risk perceptions** come from the following survey questions: Thinking 
   - Hurricanes
   - Wildfires
 
-Data on **event frequency** come from NOAA Storm Events Database (https://www.ncdc.noaa.gov/stormevents/) and the US Drought Monitor (https://droughtmonitor.unl.edu).
-<br>
-<br>
-<br>
+Data on ***event frequency*** come from the [NOAA Storm Events Database](https://www.ncdc.noaa.gov/stormevents/) and the [US Drought Monitor](https://droughtmonitor.unl.edu).
 
 Row {data-height=300}
 -----------------------------------------------------------------------
@@ -537,19 +529,17 @@ Information Sources
 Sidebar {.sidebar data-width=300}
 -----------------------------------------------------------------------
 <br/>
-<br/>
-
 ```{r}
 selectInput(inputId = 'source_group', label = 'Select a grouping', choices = groups)
 checkboxInput(inputId = 'check', label = 'Show text labels?', value = FALSE)
 ```
-
+**Notes.**<br/>
 Data on **information sources** come from the following survey questions:
 
   - How much do you, personally, rely on the following sources of information about [severe|tropical] weather?
   - Please indicate your level of trust in information about [severe|tropical] weather from each of the following organizations and groups.
 
-**Note.** Select the *Survey Hazard* grouping to see the difference across hazards.
+Select the *Survey Hazard* grouping to see the difference across hazards.
 
 Row
 -----------------------------------------------------------------------
@@ -638,19 +628,14 @@ renderPlot({
 
 Explore Surveys
 ======================================================================
+
 Sidebar {.sidebar data-width=300}
 -----------------------------------------------------------------------
-
 <br/>
-<br/>
-
 ```{r}
 selectInput(inputId = 'exp_group', label = 'Select a grouping', choices = groups)
 ```
-
-<br/>
-<br/>
-
+**Notes.**<br/>
 Click on a survey question in the table to the right and a subgroup in the drop-down list above to see the distribution of survey responses to each question by population subgroup.
 
 Row
@@ -765,10 +750,7 @@ Time Series
 ======================================================================
 Sidebar {.sidebar data-width=300}
 -----------------------------------------------------------------------
-
 <br/>
-<br/>
-
 ```{r}
 ts_data <- survey_data %>%
   select(data.frame(groups)$groups, follow:risk_fire, alert_und, nws_trust:wx_info8, tor_map_und:svr_watchwarn_und, rec_all:rec_large_group, rec_stream,
@@ -776,10 +758,7 @@ ts_data <- survey_data %>%
 selectInput(inputId = 'ts_group', label = 'Select a grouping', choices = groups)
 checkboxInput(inputId = 'scale', label = 'Show text full y-scale?', value = FALSE)
 ```
-
-<br/>
-<br/>
-
+**Notes.**<br/>
 Click on a survey question in the table to the right and a subgroup in the drop-down list above to see the distribution of survey responses to each question by population subgroup.
 
 Row
@@ -855,10 +834,8 @@ Demographic Vulnerabilities
 Sidebar{.sidebar data-width=200}
 -----------------------------------------------------------------------
 <br/>
-<br/>
-**Notes.** Data from the CDC's Social Vulnerability Index (SVI), which uses this set of 15 US census variables to help officials identify communities that may need support in preparing for hazards or recovering from disasters. For data and more information about the [CDC SVI website](https://www.atsdr.cdc.gov/placeandhealth/svi/index.html).
-<br/>
-<br/>
+**Notes.**<br/>
+Data from the CDC's Social Vulnerability Index (SVI), which uses this set of 15 US census variables to help officials identify communities that may need support in preparing for hazards or recovering from disasters. For data and more information about the [CDC SVI website](https://www.atsdr.cdc.gov/placeandhealth/svi/index.html).
 <br/>
 
 Row {data-height=500}{.tabset .tabset-fade}
@@ -962,19 +939,9 @@ output$dem_map <- renderLeaflet({
 miniContentPanel(leafletOutput(outputId = "dem_map"), padding = c(0, 0, 75, 0), scrollable = TRUE)
 ```
 
+### FEMA Risk Index
 
-
-
-
-
-
-
-
-
-
-
-
-
+Coming soon!
 
 About
 ======================================================================
@@ -989,13 +956,13 @@ Large population surveys such as the Wx Survey provide valuable information abou
 - [Exploring Community Differences in Tornado Warning Reception, Comprehension, and Response Across the United States](https://doi.org/10.1175/BAMS-D-19-0064.1)
 - [Geographic Distributions of Extreme Weather Risk Perceptions in the United States](https://doi.org/10.1111/risa.13569)
 
-**Note.** These data, like most survey data, come from non-probability samples that are not necessarily representative of the entire US population. Use cation when making inferences and drawing conclusions.
+**Caution.** These data, like most survey data, come from non-probability samples that are not necessarily representative of the entire US population. Use cation when making inferences and drawing conclusions.
 
-**Support.** Funding for this project comes from multiple sources. The University of Oklahoma provides support for data collection. The US Office of Weather and Air Quality (OWAQ) provides support for  data analysis, programming, and maintenance.
+**Support.** Funding for this project comes from multiple sources. The University of Oklahoma provides support for data collection. The US Weather Program Office (WPO) and National Weather Service (NWS) provide support for  data analysis, programming, and maintenance.
 
-**Data.** Wx Survey data and metadata are available for download at the [Severe Weather and Society Dataverse](https://dataverse.harvard.edu/dataverse/wxsurvey). 
+**Data.** All of the survey data and metadata for the Extreme Weather and Society Project are available for download at the [Severe Weather and Society Dataverse](https://dataverse.harvard.edu/dataverse/wxsurvey). 
 
-**Contact.** Please contact [Joe Ripberger](mailto:jtr@ou.edu) or [Carol Silva](mailto:clsilva@ou.edu) if you have any questions about the data or project.
+**Contact.** Please contact [Joe Ripberger](mailto:jtr@ou.edu) or [Makenzie Krocak](mailto:mjkrocak@ou.edu) if you have questions about the data or project.
 
 <!-- HTML STYLE ----------------- -->
 <style>

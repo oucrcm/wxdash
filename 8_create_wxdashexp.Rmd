@@ -32,20 +32,23 @@ output:
 </head> 
 
 ```{r global, include = FALSE}
+library(leaflet)
 library(flexdashboard)
 library(leaflet.extras)
-library(leaflet)
 library(sf)
 library(tidyverse)
-# library(shiny)
 library(viridis)
-# library(RColorBrewer)
 library(miniUI)
 library(leaflegend)
 library(ggtext)
 library(data.table)
+library(DT)
+library(cowplot)
+library(htmlwidgets)
+library(shinycssloaders)
 
 state_map <- read_sf("outputs/state_estimates")# TODO: include estimates in next update (empty files for now)
+state_map <- st_transform(state_map, "+proj=longlat +datum=WGS84")
 
 cwa_map <- read_sf("outputs/cwa_estimates")
 cwa_map <- cwa_map %>% 
@@ -66,12 +69,20 @@ survey_data$Gender <- factor(survey_data$MALE, labels = c("Female", "Male"))
 survey_data$Ethnicity <- factor(survey_data$HISP, labels = c("Non-Hispanic", "Hispanic"))
 survey_data$Race <- factor(survey_data$RACE_GROUP, labels = c("White", "Black or African American", "Other Race"))
 survey_data$Age <- factor(survey_data$AGE_GROUP, labels = c("18-34", "35-59", "60+"))
-survey_data$Education <- car::recode(survey_data$edu, "1:3 = 'Less than College'; 4:6 = 'Some College/College Degree'; 7:8 = 'More than College'")
+survey_data <- survey_data %>% 
+  mutate(Education = case_when(
+    edu %in% 1:3 ~ "Less than College",
+    edu %in% 4:6 ~ "Some College/College Degree",
+    edu %in% 7:8 ~ "More than College"))
 survey_data$Education <- factor(survey_data$Education, levels = c("Less than College", "Some College/College Degree", "More than College"))
 survey_data$Region <- factor(survey_data$nws_region)
 # survey_data$Numeracy <- factor(survey_data$Numeracy, levels = c("Low", "Moderate", "High")) # TODO: fix this in base survey file
 survey_data$Area <- factor(survey_data$rural, labels = c("Urban", "Suburban", "Rural"))
-survey_data$Understanding <- car::recode(survey_data$und_weather, "1 = 'High'; 2 = 'Moderate'; 3:5 = 'Low'")
+survey_data <- survey_data %>% 
+  mutate(Understanding = case_when(
+    edu %in% 1 ~ "High",
+    edu %in% 2 ~ "Moderate",
+    edu %in% 3:5 ~ "Low"))
 survey_data$Understanding <- factor(survey_data$Understanding, levels = c("Low", "Moderate", "High"))
 survey_data$Year <- factor(survey_data$survey_year)
 survey_data$Hazard <- factor(survey_data$survey_hazard, levels = c("WX", "TC"), labels = c("Severe", "Tropical"))
@@ -100,7 +111,8 @@ Sidebar{.sidebar data-width=200}
 -----------------------------------------------------------------------
 <br/>
 **Welcome!**<br/>
-You made it to WxDash, and interactive platform that provides access to data from the Extreme Weather and Society Project, which is run by researchers at the University of Oklahoma's [Institute for Public Policy Research and Analysis (IPPRA)](https://ou.edu/ippra). The data for the project come from yearly surveys that measure forecast and warning reception, comprehension, and response among adults (age 18+) that match the demographic characteristics of the US population. The statistics we present on this page are estimates that we calculate using a small area estimation technique called Multilevel Regression and Postratification (MRP). Navigate to the [About](https://crcm.shinyapps.io/WxDashExp/#section-about) tab to learn more about the project and the estimates. Click [here](https://dataverse.harvard.edu/dataverse/wxsurvey) to access the survey data.
+Welcome to WxDash, an interactive platform that provides access to data from the *Extreme Weather and Society Project*, which is run by researchers at the University of Oklahoma's [Institute for Public Policy Research and Analysis (IPPRA)](https://ou.edu/ippra). The data for the project come from yearly surveys that measure forecast and warning reception, comprehension, and response among adults (age 18+) that match the demographic characteristics of the US population. The statistics we present on this page are estimates that we calculate using a small area estimation technique called Multilevel Regression and Postratification (MRP). Navigate to the [About](https://crcm.shinyapps.io/WxDashExp/#section-about) tab to learn more about the project and the estimates. Click [here](https://dataverse.harvard.edu/dataverse/wxsurvey) to access the survey data.
+<br/>
 <br/>
 **Instructions for this page.**<br/>
 Select a measure from the drop down menu (above) to see an *average person percentile (APP) rank* estimate for each County Warning Area (CWA). These estimates compare the average percentile rank of adults who live in a CWA to the distribution of adults in the US. For example, a APP rank estimate of 62 indicates that, on average, adults who live in that CWA are above the national average; they score higher than 62% of adults across the country. If you click on the map, a box will open that provides more information on the CWA, such as the percentile rank of the CWA in comparison to other CWAs. A plot will also come up below that maps the distribution of APP ranks by county within the CWA you select.
@@ -192,7 +204,7 @@ output$to_map <- renderLeaflet({
       title = "Mean<br>Percentile<br>Rank")
   })
 
-miniContentPanel(leafletOutput(outputId = "to_map"), padding = c(0, 0, 75, 0), scrollable = TRUE)
+miniContentPanel(leafletOutput(outputId = "to_map"), padding = c(0, 0, 75, 0), scrollable = TRUE) %>% withSpinner()
 ```
 
 ### Tropical
@@ -273,7 +285,7 @@ output$hu_map <- renderLeaflet({
       title = "Mean<br>Percentile<br>Rank")
   })
 
-miniContentPanel(leafletOutput(outputId = "hu_map"), padding = c(0, 0, 75, 0), scrollable = TRUE)
+miniContentPanel(leafletOutput(outputId = "hu_map"), padding = c(0, 0, 75, 0), scrollable = TRUE) %>% withSpinner()
 ```
 
 ### Winter
@@ -354,7 +366,7 @@ output$sub_rsk_map <- renderLeaflet({
       height = 10, width = 200,
       title = "Percentile Rank of the CWA")
   })
-miniContentPanel(leafletOutput(outputId = "sub_rsk_map"), padding = c(0, 0, 0, 0), scrollable = TRUE)
+miniContentPanel(leafletOutput(outputId = "sub_rsk_map"), padding = c(0, 0, 0, 0), scrollable = TRUE) %>% withSpinner()
 ```
 
 ### Objective Event Frequency from NOAA Storm Data
@@ -400,7 +412,7 @@ output$obj_frq_map <- renderLeaflet({
       height = 10, width = 200,
       title = "Percentile Rank of the CWA")
   })
-miniContentPanel(leafletOutput(outputId = "obj_frq_map"), padding = c(0, 0, 0, 0), scrollable = TRUE)
+miniContentPanel(leafletOutput(outputId = "obj_frq_map"), padding = c(0, 0, 0, 0), scrollable = TRUE) %>% withSpinner()
 ```
 
 ### Subjective Risk Perceptions vs. Objective Event Frequency
@@ -455,7 +467,7 @@ output$sub_obj_map <- renderLeaflet({
       height = 10, width = 200,
       title = "Difference in Percentile Rank of the CWA")
   })
-miniContentPanel(leafletOutput(outputId = "sub_obj_map"), padding = c(0, 0, 0, 0), scrollable = TRUE)
+miniContentPanel(leafletOutput(outputId = "sub_obj_map"), padding = c(0, 0, 0, 0), scrollable = TRUE) %>% withSpinner()
 ```
 
 Row {data-height=400}
@@ -612,12 +624,12 @@ renderPlot({
     theme(plot.title = element_text(color = "grey30")) +
     scale_color_viridis(discrete = TRUE) +
     theme(plot.title = element_textbox_simple(margin = margin(0, 0, 22, 0), fill = NA))
-  p <- cowplot::plot_grid(p1, p2, align = "v", ncol = 1)
+  p <- plot_grid(p1, p2, align = "v", ncol = 1)
   print(p)
 
   p1t <- p1 + geom_text(position = position_dodge(width = 0.7), size = 4, color = "white", fontface = "bold")
   p2t <- p2 + geom_text(position = position_dodge(width = 0.7), size = 4, color = "white", fontface = "bold")
-  pt <- cowplot::plot_grid(p1t, p2t, align = "v", ncol = 1)
+  pt <- plot_grid(p1t, p2t, align = "v", ncol = 1)
   print(pt)
 
   if (input$check == FALSE) {print(p)}
@@ -717,21 +729,21 @@ Row
 ```{r}
 font.size <- "10pt"
 
-DT::datatable(variable_data %>% 
-                select(question, response_options),
-              filter = "top",
-              selection = "single",
-              rownames = FALSE,
-              style = "bootstrap",
-              class = "compact",
-              options = list(dom = "Blrtip", 
-                             initComplete = htmlwidgets::JS("function(settings, json) {", 
-                                                            paste0("$(this.api().table().container()).css({'font-size': '", 
-                                                                   font.size, "'});"),"}")), # governs text size
-              colnames = c(
-                "Question Text" = "question",
-                "Response Options" = "response_options"),
-              elementId = 'table')
+datatable(variable_data %>% 
+            select(question, response_options),
+          filter = "top",
+          selection = "single",
+          rownames = FALSE,
+          style = "bootstrap",
+          class = "compact",
+          options = list(dom = "Blrtip", 
+                         initComplete = JS("function(settings, json) {", 
+                                           paste0("$(this.api().table().container()).css({'font-size': '", 
+                                                  font.size, "'});"),"}")), # governs text size
+          colnames = c(
+            "Question Text" = "question",
+            "Response Options" = "response_options"),
+          elementId = 'table')
 
 variable_data <- variable_data %>% mutate(row_num = c(1:nrow(variable_data)))
 
@@ -800,21 +812,21 @@ ts_variable_data <- variable_data %>%
   filter(id %in% names(ts_data)) %>% 
   mutate(row_num = c(1:nrow(.)))
 
-DT::datatable(ts_variable_data %>% 
-                select(question, response_options),
-              filter = "top",
-              selection = "single",
-              rownames = FALSE,
-              style = "bootstrap",
-              class = "compact",
-              options = list(dom = "Blrtip",
-                             initComplete = htmlwidgets::JS("function(settings, json) {",
-                                                            paste0("$(this.api().table().container()).css({'font-size': '",
-                                                                   font.size, "'});"),"}")), # governs text size
-              colnames = c(
-                "Question Text" = "question",
-                "Response Options" = "response_options"),
-              elementId = 'table1')
+datatable(ts_variable_data %>% 
+            select(question, response_options),
+          filter = "top",
+          selection = "single",
+          rownames = FALSE,
+          style = "bootstrap",
+          class = "compact",
+          options = list(dom = "Blrtip",
+                         initComplete = JS("function(settings, json) {",
+                                           paste0("$(this.api().table().container()).css({'font-size': '",
+                                                  font.size, "'});"),"}")), # governs text size
+          colnames = c(
+            "Question Text" = "question",
+            "Response Options" = "response_options"),
+          elementId = 'table1')
 
 ts_select_react <- reactive({
   if(is.null(input$table1_row_last_clicked)){
@@ -871,6 +883,7 @@ div(style = "font-size: 11px",
 ```
 
 ```{r}
+
 output$dem_map <- renderLeaflet({
   variable_map_pal <- colorNumeric(palette = viridis(100), domain = fips_map %>% pull(input$dem_variable))
   cwa_map$dem_variable <- cwa_map %>% pull(input$dem_variable)
@@ -937,6 +950,7 @@ output$dem_map <- renderLeaflet({
   })
 
 miniContentPanel(leafletOutput(outputId = "dem_map"), padding = c(0, 0, 75, 0), scrollable = TRUE)
+
 ```
 
 ### FEMA Risk Index

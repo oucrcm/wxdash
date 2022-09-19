@@ -45,7 +45,6 @@ library(data.table)
 library(DT)
 library(cowplot)
 library(htmlwidgets)
-library(shinycssloaders)
 
 state_map <- read_sf("outputs/state_estimates")# TODO: include estimates in next update (empty files for now)
 state_map <- st_transform(state_map, "+proj=longlat +datum=WGS84")
@@ -115,9 +114,11 @@ Welcome to WxDash, an interactive platform that provides access to data from the
 <br/>
 <br/>
 **Instructions for this page.**<br/>
-Select a measure from the drop down menu (above) to see an *average person percentile (APP) rank* estimate for each County Warning Area (CWA). These estimates compare the average percentile rank of adults who live in a CWA to the distribution of adults in the US. For example, a APP rank estimate of 62 indicates that, on average, adults who live in that CWA are above the national average; they score higher than 62% of adults across the country. If you click on the map, a box will open that provides more information on the CWA, such as the percentile rank of the CWA in comparison to other CWAs. A plot will also come up below that maps the distribution of APP ranks by county within the CWA you select.
+Select a measure from the drop down menu (above) to see an *average person percentile (APP) rank* estimate for each County Warning Area (CWA). These estimates compare the average percentile rank of adults who live in a CWA to the distribution of adults in the US. For example, a APP rank estimate of 62 indicates that, on average, adults who live in that CWA are above the national average; they score higher than 62% of adults across the country. If you click on a CWA, you will see the APP rank estimate and the percentile rank of the CWA comparison to other CWAs. If you click on *County Estimates*, the map will display APP estimates by county and the percentile rank of the county in comparison to other counties in the CWA.
 <br/>
-Contact [Joe Ripberger](mailto:jtr@ou.edu) or [Makenzie Krocak](mailto:mjkrocak@ou.edu) if you have questions about the data or project.
+<br/>
+**Questions or feedback.**<br/> 
+Contact [Joe Ripberger](mailto:jtr@ou.edu) or [Makenzie Krocak](mailto:mjkrocak@ou.edu) at OU IPPRA.
 
 Row {data-height=500}{.tabset .tabset-fade}
 -----------------------------------------------------------------------
@@ -140,16 +141,17 @@ div(style = "font-size: 11px",
 variable_map_cols <- viridis(100)
 variable_map_pal <- colorNumeric(palette = variable_map_cols, domain = c(30, 70))
 
-output$to_map <- renderLeaflet({
+miniContentPanel(
+  renderLeaflet({
   cwa_map$to_variable <- cwa_map %>% pull(input$to_variable)
   fips_map$to_variable <- fips_map %>% pull(input$to_variable)
   cwa_popup <- with(cwa_map, paste0("NWS ", City, ", ", ST, " (", CWA,")", "<br>",
-                                    "Percentile rank of the average person in the CWA: ", round(to_variable, 2), "<br>",
+                                    "Percentile rank of the average person in the CWA (APP): ", round(to_variable, 2), "<br>",
                                     "Percentile rank of the CWA: ", round(pnorm(scale(to_variable)) * 100, 2)))
   fips_popup <- with(fips_map, paste0(NAME, ", County ", "(", CWA, ")", "<br>",
                                       "Percentile rank of the average person in the County: ", round(to_variable, 2), "<br>",
                                       "Percentile rank of the County: ", round(pnorm(scale(to_variable)) * 100, 2)))
-  to_map <- leaflet() %>%
+  map <- leaflet() %>%
     setView(lng = -97, lat = 40, zoom = 5) %>%
     addTiles() %>%
     addPolygons(
@@ -202,9 +204,8 @@ output$to_map <- renderLeaflet({
       values = ~to_variable,
       opacity = 0.7,
       title = "Mean<br>Percentile<br>Rank")
-  })
-
-miniContentPanel(leafletOutput(outputId = "to_map"), padding = c(0, 0, 75, 0), scrollable = TRUE) %>% withSpinner()
+  }), 
+  padding = c(0, 0, 75, 0), scrollable = TRUE)
 ```
 
 ### Tropical
@@ -221,7 +222,8 @@ div(style = "font-size: 11px",
 ```
 
 ```{r}
-output$hu_map <- renderLeaflet({
+miniContentPanel(
+  renderLeaflet({
   cwa_map$hu_variable <- cwa_map %>% pull(input$hu_variable)
   fips_map$hu_variable <- fips_map %>% pull(input$hu_variable)
   cwa_popup <- with(cwa_map, paste0("NWS ", City, ", ", ST, " (", CWA,")", "<br>",
@@ -230,7 +232,7 @@ output$hu_map <- renderLeaflet({
   fips_popup <- with(fips_map, paste0(NAME, ", County ", "(", CWA, ")", "<br>",
                                       "Percentile rank of the average person in the County: ", round(hu_variable, 2), "<br>",
                                       "Percentile rank of the County: ", round(pnorm(scale(hu_variable)) * 100, 2)))
-  to_map <- leaflet() %>%
+  leaflet() %>%
     setView(lng = -97, lat = 40, zoom = 5) %>%
     addTiles() %>%
     addPolygons(
@@ -283,9 +285,8 @@ output$hu_map <- renderLeaflet({
       values = ~hu_variable,
       opacity = 0.7,
       title = "Mean<br>Percentile<br>Rank")
-  })
-
-miniContentPanel(leafletOutput(outputId = "hu_map"), padding = c(0, 0, 75, 0), scrollable = TRUE) %>% withSpinner()
+  }), 
+  padding = c(0, 0, 75, 0), scrollable = TRUE)
 ```
 
 ### Winter
@@ -336,12 +337,13 @@ Row {data-height=300}
 perception_map_cols <- viridis(100)
 perception_map_pal <- colorNumeric(palette = perception_map_cols, domain = c(0, 100))
 
-output$sub_rsk_map <- renderLeaflet({
+miniContentPanel(
+  renderLeaflet({
   cwa_map$sub_rsk_variable <- cwa_map %>% pull(input$event)
   cwa_popup <- with(cwa_map, paste0("NWS ", City, ", ", ST, " (", CWA,")", "<br>",
                                     "Percentile rank of the average person in the CWA: ", round(sub_rsk_variable, 2), "<br>",
                                     "Percentile rank of the CWA: ", round(pnorm(scale(sub_rsk_variable)) * 100, 2)))
-  to_map <- leaflet() %>%
+  leaflet() %>%
     setView(lng = -96.5, lat = 36.5, zoom = 3) %>%
     addTiles() %>%
     addPolygons(
@@ -355,7 +357,7 @@ output$sub_rsk_map <- renderLeaflet({
       weight = 2,
       popup = cwa_popup,
       layerId = ~CWA,
-      group = "CWA") %>% 
+      group = "CWA") %>%
     addLegendNumeric(
       orientation = c("horizontal"),
       data = cwa_map,
@@ -365,8 +367,8 @@ output$sub_rsk_map <- renderLeaflet({
       fillOpacity = 0.7,
       height = 10, width = 200,
       title = "Percentile Rank of the CWA")
-  })
-miniContentPanel(leafletOutput(outputId = "sub_rsk_map"), padding = c(0, 0, 0, 0), scrollable = TRUE) %>% withSpinner()
+  }), 
+  padding = c(0, 0, 0, 0), scrollable = TRUE)
 ```
 
 ### Objective Event Frequency from NOAA Storm Data
@@ -374,7 +376,8 @@ miniContentPanel(leafletOutput(outputId = "sub_rsk_map"), padding = c(0, 0, 0, 0
 frequency_map_cols <- viridis(100)
 frequency_map_pal <- colorNumeric(palette = frequency_map_cols, domain = c(0, 100))
 
-output$obj_frq_map <- renderLeaflet({
+miniContentPanel(
+  renderLeaflet({
   rsk_name <- NA
   rsk_name <- ifelse(input$event == "PER_HEA", "HEAT", rsk_name)
   rsk_name <- ifelse(input$event == "PER_DRO", "DROUGHT", rsk_name)
@@ -387,7 +390,7 @@ output$obj_frq_map <- renderLeaflet({
   cwa_map$obj_frq_variable <- cwa_map %>% pull(rsk_name)
   cwa_popup <- with(cwa_map, paste0("NWS ", City, ", ", ST, " (", CWA,")", "<br>",
                                     "Percentile rank of the CWA: ", round(obj_frq_variable, 2)))
-  to_map <- leaflet() %>%
+  leaflet() %>%
     setView(lng = -96.5, lat = 36.5, zoom = 3) %>%
     addTiles() %>%
     addPolygons(
@@ -401,7 +404,7 @@ output$obj_frq_map <- renderLeaflet({
       weight = 2,
       popup = cwa_popup,
       layerId = ~CWA,
-      group = "CWA") %>% 
+      group = "CWA") %>%
     addLegendNumeric(
       orientation = c("horizontal"),
       data = cwa_map,
@@ -411,8 +414,8 @@ output$obj_frq_map <- renderLeaflet({
       fillOpacity = 0.7,
       height = 10, width = 200,
       title = "Percentile Rank of the CWA")
-  })
-miniContentPanel(leafletOutput(outputId = "obj_frq_map"), padding = c(0, 0, 0, 0), scrollable = TRUE) %>% withSpinner()
+  }), 
+  padding = c(0, 0, 0, 0), scrollable = TRUE)
 ```
 
 ### Subjective Risk Perceptions vs. Objective Event Frequency
@@ -429,7 +432,8 @@ cwa_map <- cwa_map %>%
          hurr_difference = (pnorm(scale(cwa_map$PER_HUR)) * 100) - HURR,
          fire_difference = (pnorm(scale(cwa_map$PER_FIR)) * 100) - FIRE)
 
-output$sub_obj_map <- renderLeaflet({
+miniContentPanel(
+  renderLeaflet({
   dif_name <- NA
   dif_name <- ifelse(input$event == "PER_HEA", "heat_difference", dif_name)
   dif_name <- ifelse(input$event == "PER_DRO", "drought_difference", dif_name)
@@ -442,7 +446,7 @@ output$sub_obj_map <- renderLeaflet({
   cwa_map$sub_obj_variable <- cwa_map %>% pull(dif_name)
   cwa_popup <- with(cwa_map, paste0("NWS ", City, ", ", ST, " (", CWA,")", "<br>",
                                     "Difference in Percentile rank of the CWA: ", round(sub_obj_variable, 2)))
-  to_map <- leaflet() %>%
+  leaflet() %>%
     setView(lng = -96.5, lat = 36.5, zoom = 3) %>%
     addTiles() %>%
     addPolygons(
@@ -456,7 +460,7 @@ output$sub_obj_map <- renderLeaflet({
       weight = 2,
       popup = cwa_popup,
       layerId = ~CWA,
-      group = "CWA") %>% 
+      group = "CWA") %>%
     addLegendNumeric(
       orientation = c("horizontal"),
       data = cwa_map,
@@ -466,8 +470,8 @@ output$sub_obj_map <- renderLeaflet({
       fillOpacity = 0.7,
       height = 10, width = 200,
       title = "Difference in Percentile Rank of the CWA")
-  })
-miniContentPanel(leafletOutput(outputId = "sub_obj_map"), padding = c(0, 0, 0, 0), scrollable = TRUE) %>% withSpinner()
+  }), 
+  padding = c(0, 0, 0, 0), scrollable = TRUE)
 ```
 
 Row {data-height=400}
@@ -522,7 +526,7 @@ miniContentPanel(renderPlot({
     geom_smooth(method = lm, color = "red", alpha = 0.5, se = FALSE, size = 3) +
     geom_point(alpha = 0.3, size = 8) +
     geom_point(data = cwa_map[cwa_map$CWA == input$cwa, ],
-               aes_string(x = obj_name, y = sub_name), 
+               aes_string(x = obj_name, y = sub_name),
                color = "blue", fill = "blue", alpha = 0.3, size = 20) +
     geom_text(aes(label = CWA)) +
     labs(x = "Objective Event Frequency\n(Percentile Rank of the CWA)", y = "Subjective Risk Perceptions\n(Percentile Rank of the CWA)", title = input$cwa) +
@@ -593,9 +597,9 @@ trust_data <- reactive({
                            "em_trust" = "State or\nlocal emergency\nmanagers",
                            "fam_trust" = "Family, friends,\nneighbors, employers,\nco-workers, etc.")) %>%
     mutate(Source = factor(Source,
-                        levels = c("National\nWeather\nService", 
-                                   "Regional\nor local TV\nstations", 
-                                   "National TV\nstations", 
+                        levels = c("National\nWeather\nService",
+                                   "Regional\nor local TV\nstations",
+                                   "National TV\nstations",
                                    "State or\nlocal emergency\nmanagers",
                                    "Family, friends,\nneighbors, employers,\nco-workers, etc."))) %>%
     mutate(l = round(value, 1))
@@ -634,7 +638,7 @@ renderPlot({
 
   if (input$check == FALSE) {print(p)}
   if (input$check == TRUE) {print(pt)}
- 
+
   }, height = 900)
 ```
 
@@ -676,46 +680,46 @@ d <- reactive({
 d <- reactive({
   survey_data %>%
     group_by(!!as.name(input$exp_group), !!as.name(select_react() %>% pull(var = id))) %>%
-    drop_na(input$exp_group, select_react() %>% pull(var = id)) %>% 
-    summarize(n = n()) %>% 
+    drop_na(input$exp_group, select_react() %>% pull(var = id)) %>%
+    summarize(n = n()) %>%
     mutate(p = round(n/sum(n) * 100)) %>%
-    mutate(l = paste0(p, "%")) %>% 
+    mutate(l = paste0(p, "%")) %>%
     mutate(resp = factor(!!as.name(select_react() %>% pull(var = id))))
 })
 
 renderPlot({
-  p1 <- ggplot(d() %>% drop_na(input$exp_group, select_react() %>% pull(var = id)), 
+  p1 <- ggplot(d() %>% drop_na(input$exp_group, select_react() %>% pull(var = id)),
                aes_string(x = "as.factor(resp)", y = "p", fill = input$exp_group, label = "l")) +
     geom_bar(stat = "identity", position = "dodge") +
     geom_text(position = position_dodge(width = .9), size = 5, vjust = -0.2, color = "black") +
-    labs(x = "Response", y = "Respondents (%)", fill = "Group", 
+    labs(x = "Response", y = "Respondents (%)", fill = "Group",
          title = variable_data[variable_data$id == select_react() %>% pull(var = id), ]$question,
          caption = paste0(
            "[",
-           variable_data[variable_data$id == select_react() %>% pull(var = id), ]$response_options, 
+           variable_data[variable_data$id == select_react() %>% pull(var = id), ]$response_options,
            "]")) +
     theme_classic(base_size = 20) +
     scale_fill_viridis(discrete = TRUE) +
-    scale_y_continuous(minor_breaks = NULL, 
+    scale_y_continuous(minor_breaks = NULL,
                        expand = expansion(mult = c(0, 0.2))) +
     # scale_x_discrete(labels = variable_data[variable_data$id == select_react() %>% pull(var = id), ]$label) +
     theme(title = element_text(size = 14)) +
     theme(plot.title = element_textbox_simple(margin = margin(0, 0, 22, 0), fill = NA))
 
-  p2 <- ggplot(survey_data %>% drop_na(input$exp_group, select_react() %>% pull(var = id)), 
+  p2 <- ggplot(survey_data %>% drop_na(input$exp_group, select_react() %>% pull(var = id)),
                aes_string(y = select_react() %>% pull(var = id), x = as.factor(input$exp_group), fill = input$exp_group)) +
     geom_boxplot() +
-    labs(x = "Group", y = "Response", fill = "Group", 
+    labs(x = "Group", y = "Response", fill = "Group",
          title = variable_data[variable_data$id == select_react() %>% pull(var = id), ]$question,
          caption = paste0(
            "[",
-           variable_data[variable_data$id == select_react() %>% pull(var = id), ]$response_options, 
+           variable_data[variable_data$id == select_react() %>% pull(var = id), ]$response_options,
            "]")) +
     theme_classic(base_size = 20) +
     scale_fill_viridis(discrete = TRUE) +
     theme(title = element_text(size = 14)) +
     theme(plot.title = element_textbox_simple(margin = margin(0, 0, 22, 0), fill = NA))
-  
+
   if (select_react() %>% pull(var = id) %in% names(cat)) {print(p1)}
   if (select_react() %>% pull(var = id) %in% names(num)) {print(p2)}
 })
@@ -729,16 +733,16 @@ Row
 ```{r}
 font.size <- "10pt"
 
-datatable(variable_data %>% 
+datatable(variable_data %>%
             select(question, response_options),
           filter = "top",
           selection = "single",
           rownames = FALSE,
           style = "bootstrap",
           class = "compact",
-          options = list(dom = "Blrtip", 
-                         initComplete = JS("function(settings, json) {", 
-                                           paste0("$(this.api().table().container()).css({'font-size': '", 
+          options = list(dom = "Blrtip",
+                         initComplete = JS("function(settings, json) {",
+                                           paste0("$(this.api().table().container()).css({'font-size': '",
                                                   font.size, "'});"),"}")), # governs text size
           colnames = c(
             "Question Text" = "question",
@@ -751,7 +755,7 @@ select_react <- reactive({
   if(is.null(input$table_row_last_clicked)){
     variable_data %>%
       filter(row_num == 1) %>%
-      select(id)} 
+      select(id)}
   else {variable_data %>%
       filter(row_num == input$table_row_last_clicked) %>%
       select(id)}
@@ -788,7 +792,7 @@ renderPlot({
          title = variable_data[variable_data$id == ts_select_react() %>% pull(var = id), ]$question,
                   caption = paste0(
            "[",
-           variable_data[variable_data$id == select_react() %>% pull(var = id), ]$response_options, 
+           variable_data[variable_data$id == select_react() %>% pull(var = id), ]$response_options,
            "]")) +
     theme_classic(base_size = 20) +
     theme(title = element_text(size = 14)) +
@@ -808,11 +812,11 @@ Row
 ```{r}
 font.size <- "10pt"
 
-ts_variable_data <- variable_data %>% 
-  filter(id %in% names(ts_data)) %>% 
+ts_variable_data <- variable_data %>%
+  filter(id %in% names(ts_data)) %>%
   mutate(row_num = c(1:nrow(.)))
 
-datatable(ts_variable_data %>% 
+datatable(ts_variable_data %>%
             select(question, response_options),
           filter = "top",
           selection = "single",
@@ -847,7 +851,7 @@ Sidebar{.sidebar data-width=200}
 -----------------------------------------------------------------------
 <br/>
 **Notes.**<br/>
-Data from the CDC's Social Vulnerability Index (SVI), which uses this set of 15 US census variables to help officials identify communities that may need support in preparing for hazards or recovering from disasters. For data and more information about the [CDC SVI website](https://www.atsdr.cdc.gov/placeandhealth/svi/index.html).
+The CDC's Social Vulnerability Index (SVI) uses this set of 15 US census variables to help officials identify communities that may need support in preparing for hazards or recovering from disasters. Click [here](https://www.atsdr.cdc.gov/placeandhealth/svi/index.html) for more information.
 <br/>
 
 Row {data-height=500}{.tabset .tabset-fade}
@@ -883,8 +887,8 @@ div(style = "font-size: 11px",
 ```
 
 ```{r}
-
-output$dem_map <- renderLeaflet({
+miniContentPanel(
+  renderLeaflet({
   variable_map_pal <- colorNumeric(palette = viridis(100), domain = fips_map %>% pull(input$dem_variable))
   cwa_map$dem_variable <- cwa_map %>% pull(input$dem_variable)
   fips_map$dem_variable <- fips_map %>% pull(input$dem_variable)
@@ -894,7 +898,7 @@ output$dem_map <- renderLeaflet({
   fips_popup <- with(fips_map, paste0(NAME, ", County ", "(", CWA, ")", "<br>",
                                       "Estimate: ", round(dem_variable, 2), "<br>",
                                       "Percentile rank of the County: ", round(pnorm(scale(dem_variable)) * 100, 2)))
-  dem_map <- leaflet() %>%
+  leaflet() %>%
     setView(lng = -97, lat = 40, zoom = 5) %>%
     addTiles() %>%
     addPolygons(
@@ -947,10 +951,8 @@ output$dem_map <- renderLeaflet({
       values = ~dem_variable,
       opacity = 0.7,
       title = "Estimate")
-  })
-
-miniContentPanel(leafletOutput(outputId = "dem_map"), padding = c(0, 0, 75, 0), scrollable = TRUE)
-
+  }), 
+  padding = c(0, 0, 75, 0), scrollable = TRUE)
 ```
 
 ### FEMA Risk Index
@@ -962,7 +964,7 @@ About
 **Motivation.** Members of the weather enterprise, including National Weather Service (NWS) forecasters, emergency managers, broadcast meteorologists, and private partners have many responsibilities, ranging from the issuance of forecasts and warnings during high impact weather events to outreach and public education campaigns during less turbulent periods. Effective education and risk communication across this range of responsibilities requires knowledge of the communities that enterprise members serve. This includes knowledge about atmospheric and climate conditions in communities as well as knowledge about the people in communities. Enterprise members often have access to a wide variety data that facilitate the first type of knowledge, but relatively little data on the populations they serve. As a result, it can be difficult to answer basic questions, such as what risks do the people in my community worry about or neglect? Do they generally receive, understand, and respond to forecasts and warnings? What sources of information do they rely on and trust? Absent reliable answers to these questions, it is challenging to develop public education and risk communication strategies that match the characteristics of the community.
 
 **Methodology.** This project works to overcome some these challenges by developing a database of community statistics and this interactive platform that provides some of this information. The approach we use leverages population scale data from the Severe Weather and Society Survey (Wx Survey) and known sub-population characteristics from the US Census to estimate statistics of interest to the weather enterprise. Run by the [University of Oklahoma Institute for Public Policy Research and Analysis (IPPRA)](https://ou.edu/ippra), the Wx Survey is a yearly survey of the US public that includes two types of questions: (1) baseline questions that measure core concepts such as risk perceptions, forecast and warning reception, comprehension, and response, hazard comprehension, and trust in information sources; and (2) one-time questions and experiments that address various topics, such as the impact of uncertainty and probabilistic information on risk judgments and protective action decision making. Visit our [data repository](https://dataverse.harvard.edu/dataverse/wxsurvey) for more information about the surveys. For more information about the composite measures we produce from these surveys and the steps we take to ensure that the measures are reliable, see:
-    
+
 - [Measuring Tornado Warning Reception, Comprehension, and Response in the United States](https://doi.org/10.1175/WCAS-D-19-0015.1)
 
 Large population surveys such as the Wx Survey provide valuable information about the population as a whole, but [small area estimation (SEA)](https://www.nap.edu/read/13174/chapter/7) is necessary to identify differences across geographic sub-populations. This project uses multilevel regression and poststratification [MRP](https://journals.sagepub.com/doi/epub/10.1177/1478929919864773) to provide these estimates by NWS County Warning Area (CWA) and county. For more information about this methodology and how we apply it in this context, see:
@@ -974,7 +976,7 @@ Large population surveys such as the Wx Survey provide valuable information abou
 
 **Support.** Funding for this project comes from multiple sources. The University of Oklahoma provides support for data collection. The US Weather Program Office (WPO) and National Weather Service (NWS) provide support for  data analysis, programming, and maintenance.
 
-**Data.** All of the survey data and metadata for the Extreme Weather and Society Project are available for download at the [Severe Weather and Society Dataverse](https://dataverse.harvard.edu/dataverse/wxsurvey). 
+**Data.** All of the survey data and metadata for the Extreme Weather and Society Project are available for download at the [Severe Weather and Society Dataverse](https://dataverse.harvard.edu/dataverse/wxsurvey).
 
 **Contact.** Please contact [Joe Ripberger](mailto:jtr@ou.edu) or [Makenzie Krocak](mailto:mjkrocak@ou.edu) if you have questions about the data or project.
 

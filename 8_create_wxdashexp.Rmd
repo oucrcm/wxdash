@@ -157,7 +157,7 @@ miniContentPanel(
     addPolygons(
       data = cwa_map,
       fillColor = ~variable_map_pal(to_variable),
-      highlight = highlightOptions(weight = 5, color = "grey", fillOpacity = 0.9, bringToFront = TRUE),
+      highlight = highlightOptions(weight = 5, color = "grey", fillOpacity = 0.9, bringToFront = FALSE),
       color = "white",
       fillOpacity = 0.9,
       stroke = TRUE,
@@ -169,7 +169,7 @@ miniContentPanel(
     addPolygons(
       data = fips_map,
       fillColor = ~variable_map_pal(to_variable),
-      highlight = highlightOptions(weight = 5, color = "grey", fillOpacity = 0.9, bringToFront = TRUE),
+      highlight = highlightOptions(weight = 5, color = "grey", fillOpacity = 0.9, bringToFront = FALSE),
       color = "white",
       fillOpacity = 0.9,
       stroke = TRUE,
@@ -186,8 +186,8 @@ miniContentPanel(
     addPolylines(
       data = state_map,
       group = "State Borders",
-      color = "white",
-      weight = 3) %>%
+      color = "#D3D3D3",
+      weight = 4) %>%
     addLayersControl(
       baseGroups = c("CWA Estimates", "County Estimates"), # TODO: include state estimates in next update
       overlayGroups = c("State Borders", "CWA Borders"),
@@ -227,7 +227,7 @@ miniContentPanel(
   cwa_map$hu_variable <- cwa_map %>% pull(input$hu_variable)
   fips_map$hu_variable <- fips_map %>% pull(input$hu_variable)
   cwa_popup <- with(cwa_map, paste0("NWS ", City, ", ", ST, " (", CWA,")", "<br>",
-                                    "Percentile rank of the average person in the CWA: ", round(hu_variable, 2), "<br>",
+                                    "Percentile rank of the average person in the CWA (APP): ", round(hu_variable, 2), "<br>",
                                     "Percentile rank of the CWA: ", round(pnorm(scale(hu_variable)) * 100, 2)))
   fips_popup <- with(fips_map, paste0(NAME, ", County ", "(", CWA, ")", "<br>",
                                       "Percentile rank of the average person in the County: ", round(hu_variable, 2), "<br>",
@@ -238,7 +238,7 @@ miniContentPanel(
     addPolygons(
       data = cwa_map,
       fillColor = ~variable_map_pal(hu_variable),
-      highlight = highlightOptions(weight = 5, color = "grey", fillOpacity = 0.9, bringToFront = TRUE),
+      highlight = highlightOptions(weight = 5, color = "grey", fillOpacity = 0.9, bringToFront = FALSE),
       color = "white",
       fillOpacity = 0.9,
       stroke = TRUE,
@@ -250,7 +250,7 @@ miniContentPanel(
     addPolygons(
       data = fips_map,
       fillColor = ~variable_map_pal(hu_variable),
-      highlight = highlightOptions(weight = 5, color = "grey", fillOpacity = 0.9, bringToFront = TRUE),
+      highlight = highlightOptions(weight = 5, color = "grey", fillOpacity = 0.9, bringToFront = FALSE),
       color = "white",
       fillOpacity = 0.9,
       stroke = TRUE,
@@ -267,8 +267,8 @@ miniContentPanel(
     addPolylines(
       data = state_map,
       group = "State Borders",
-      color = "white",
-      weight = 3) %>%
+      color = "#D3D3D3",
+      weight = 4) %>%
     addLayersControl(
       baseGroups = c("CWA Estimates", "County Estimates"), # TODO: include state estimates in next update
       overlayGroups = c("State Borders", "CWA Borders"),
@@ -349,7 +349,7 @@ miniContentPanel(
     addPolygons(
       data = cwa_map,
       fillColor = ~perception_map_pal(round(pnorm(scale(sub_rsk_variable)) * 100, 2)),
-      highlight = highlightOptions(weight = 5, color = "grey", fillOpacity = 0.9, bringToFront = TRUE),
+      highlight = highlightOptions(weight = 5, color = "grey", fillOpacity = 0.9, bringToFront = FALSE),
       color = "white",
       fillOpacity = 0.9,
       stroke = TRUE,
@@ -396,7 +396,7 @@ miniContentPanel(
     addPolygons(
       data = cwa_map,
       fillColor = ~frequency_map_pal(obj_frq_variable),
-      highlight = highlightOptions(weight = 5, color = "grey", fillOpacity = 0.9, bringToFront = TRUE),
+      highlight = highlightOptions(weight = 5, color = "grey", fillOpacity = 0.9, bringToFront = FALSE),
       color = "white",
       fillOpacity = 0.9,
       stroke = TRUE,
@@ -452,7 +452,7 @@ miniContentPanel(
     addPolygons(
       data = cwa_map,
       fillColor = ~difference_map_pal(sub_obj_variable),
-      highlight = highlightOptions(weight = 5, color = "grey", fillOpacity = 0.9, bringToFront = TRUE),
+      highlight = highlightOptions(weight = 5, color = "grey", fillOpacity = 0.9, bringToFront = FALSE),
       color = "white",
       fillOpacity = 0.9,
       stroke = TRUE,
@@ -904,7 +904,7 @@ miniContentPanel(
     addPolygons(
       data = cwa_map,
       fillColor = ~variable_map_pal(dem_variable),
-      highlight = highlightOptions(weight = 5, color = "grey", fillOpacity = 0.9, bringToFront = TRUE),
+      highlight = highlightOptions(weight = 5, color = "grey", fillOpacity = 0.9, bringToFront = FALSE),
       color = "white",
       fillOpacity = 0.9,
       stroke = TRUE,
@@ -916,7 +916,7 @@ miniContentPanel(
     addPolygons(
       data = fips_map,
       fillColor = ~variable_map_pal(dem_variable),
-      highlight = highlightOptions(weight = 5, color = "grey", fillOpacity = 0.9, bringToFront = TRUE),
+      highlight = highlightOptions(weight = 5, color = "grey", fillOpacity = 0.9, bringToFront = FALSE),
       color = "white",
       fillOpacity = 0.9,
       stroke = TRUE,
@@ -933,8 +933,8 @@ miniContentPanel(
     addPolylines(
       data = state_map,
       group = "State Borders",
-      color = "white",
-      weight = 3) %>%
+      color = "#D3D3D3",
+      weight = 4) %>%
     addLayersControl(
       baseGroups = c("CWA Estimates", "County Estimates"), # TODO: include state estimates in next update
       overlayGroups = c("State Borders", "CWA Borders"),

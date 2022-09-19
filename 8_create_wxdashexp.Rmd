@@ -899,7 +899,7 @@ miniContentPanel(
                                       "Estimate: ", round(dem_variable, 2), "<br>",
                                       "Percentile rank of the County: ", round(pnorm(scale(dem_variable)) * 100, 2)))
   leaflet() %>%
-    setView(lng = -97, lat = 40, zoom = 5) %>%
+    setView(lng = -97, lat = 40, zoom = 4) %>%
     addTiles() %>%
     addPolygons(
       data = cwa_map,

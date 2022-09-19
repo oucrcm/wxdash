@@ -65,7 +65,7 @@ county_storm_data_counts <- storm_data %>%
   as.data.frame()
 
 # FIX NECESSARY: Many events are reported by forecast zone (CZTYPE of "Z") rather than county (CZTYPE of "C"). For these events, the CNTY_FIPS is likely incorrect. 
-# Perhaps use CZ_NAME to get county info in the future? See https://cran.r-project.org/web/packages/noaastormevents/vignettes/details.html for example.
+# Perhaps use CZ_NAME to get county info in the future? See https://cran.r-project.org/web/packages/noaastormevents/vignettes/details.html for example...
 
 drought_data <- list.files(downloads, pattern = "dm_export", full.names = TRUE) # https://droughtmonitor.unl.edu/Data/DataDownload/ComprehensiveStatistics.aspx
 drought_data <- lapply(drought_data, fread, sep = ",")

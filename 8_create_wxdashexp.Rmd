@@ -106,7 +106,7 @@ variable_data <- fread("variable_data_live.csv")
 Composite Scales
 ======================================================================
 
-Sidebar{.sidebar data-width=200}
+Sidebar{.sidebar data-width=300}
 -----------------------------------------------------------------------
 <br/>
 **Welcome!**<br/>
@@ -117,7 +117,7 @@ Welcome to WxDash, an interactive platform that provides access to data from the
 Select a measure from the drop down menu (above) to see an *average person percentile (APP) rank* estimate for each County Warning Area (CWA). These estimates compare the average percentile rank of adults who live in a CWA to the distribution of adults in the US. For example, a APP rank estimate of 62 indicates that, on average, adults who live in that CWA are above the national average; they score higher than 62% of adults across the country. If you click on a CWA, you will see the APP rank estimate and the percentile rank of the CWA comparison to other CWAs. If you click on *County Estimates*, the map will display APP estimates by county and the percentile rank of the county in comparison to other counties in the CWA.
 <br/>
 <br/>
-**Questions or feedback.**<br/> 
+**Questions or feedback?**<br/> 
 Contact [Joe Ripberger](mailto:jtr@ou.edu) or [Makenzie Krocak](mailto:mjkrocak@ou.edu) at OU IPPRA.
 
 Row {data-height=500}{.tabset .tabset-fade}
@@ -963,7 +963,7 @@ About
 ======================================================================
 **Motivation.** Members of the weather enterprise, including National Weather Service (NWS) forecasters, emergency managers, broadcast meteorologists, and private partners have many responsibilities, ranging from the issuance of forecasts and warnings during high impact weather events to outreach and public education campaigns during less turbulent periods. Effective education and risk communication across this range of responsibilities requires knowledge of the communities that enterprise members serve. This includes knowledge about atmospheric and climate conditions in communities as well as knowledge about the people in communities. Enterprise members often have access to a wide variety data that facilitate the first type of knowledge, but relatively little data on the populations they serve. As a result, it can be difficult to answer basic questions, such as what risks do the people in my community worry about or neglect? Do they generally receive, understand, and respond to forecasts and warnings? What sources of information do they rely on and trust? Absent reliable answers to these questions, it is challenging to develop public education and risk communication strategies that match the characteristics of the community.
 
-**Methodology.** This project works to overcome some these challenges by developing a database of community statistics and this interactive platform that provides some of this information. The approach we use leverages population scale data from the Severe Weather and Society Survey (Wx Survey) and known sub-population characteristics from the US Census to estimate statistics of interest to the weather enterprise. Run by the [University of Oklahoma Institute for Public Policy Research and Analysis (IPPRA)](https://ou.edu/ippra), the Wx Survey is a yearly survey of the US public that includes two types of questions: (1) baseline questions that measure core concepts such as risk perceptions, forecast and warning reception, comprehension, and response, hazard comprehension, and trust in information sources; and (2) one-time questions and experiments that address various topics, such as the impact of uncertainty and probabilistic information on risk judgments and protective action decision making. Visit our [data repository](https://dataverse.harvard.edu/dataverse/wxsurvey) for more information about the surveys. For more information about the composite measures we produce from these surveys and the steps we take to ensure that the measures are reliable, see:
+**Methodology.** This project works to overcome some these challenges by developing a database of community statistics and this interactive platform that provides some of this information. The approach we use leverages population scale data from the Extreme Weather and Society Survey (Wx Survey) and known sub-population characteristics from the US Census to estimate statistics of interest to the weather enterprise. Run by the [University of Oklahoma Institute for Public Policy Research and Analysis (IPPRA)](https://ou.edu/ippra), the Wx Survey is a yearly survey of the US public that includes two types of questions: (1) baseline questions that measure core concepts such as risk perceptions, forecast and warning reception, comprehension, and response, hazard comprehension, and trust in information sources; and (2) one-time questions and experiments that address various topics, such as the impact of uncertainty and probabilistic information on risk judgments and protective action decision making. Visit our [data repository](https://dataverse.harvard.edu/dataverse/wxsurvey) for more information about the surveys. For more information about the composite measures we produce from these surveys and the steps we take to ensure that the measures are reliable, see:
 
 - [Measuring Tornado Warning Reception, Comprehension, and Response in the United States](https://doi.org/10.1175/WCAS-D-19-0015.1)
 
@@ -976,7 +976,7 @@ Large population surveys such as the Wx Survey provide valuable information abou
 
 **Support.** Funding for this project comes from multiple sources. The University of Oklahoma provides support for data collection. The US Weather Program Office (WPO) and National Weather Service (NWS) provide support for  data analysis, programming, and maintenance.
 
-**Data.** All of the survey data and metadata for the Extreme Weather and Society Project are available for download at the [Severe Weather and Society Dataverse](https://dataverse.harvard.edu/dataverse/wxsurvey).
+**Data.** All of the survey data and metadata for the Extreme Weather and Society Project are available for download at the [Extreme Weather and Society Dataverse](https://dataverse.harvard.edu/dataverse/wxsurvey).
 
 **Contact.** Please contact [Joe Ripberger](mailto:jtr@ou.edu) or [Makenzie Krocak](mailto:mjkrocak@ou.edu) if you have questions about the data or project.
 

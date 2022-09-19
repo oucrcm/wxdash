@@ -100,7 +100,7 @@ groups <- c("All" = "All",
             "Survey Year" = "Year",
             "Survey Hazard" = "Hazard")
 
-variable_data <- fread("variable_data_new.csv")
+variable_data <- fread("variable_data_live.csv")
 ```
 
 Composite Scales
@@ -152,7 +152,7 @@ miniContentPanel(
                                       "Percentile rank of the average person in the County: ", round(to_variable, 2), "<br>",
                                       "Percentile rank of the County: ", round(pnorm(scale(to_variable)) * 100, 2)))
   map <- leaflet() %>%
-    setView(lng = -97, lat = 40, zoom = 5) %>%
+    setView(lng = -97, lat = 40, zoom = 4) %>%
     addTiles() %>%
     addPolygons(
       data = cwa_map,
@@ -233,7 +233,7 @@ miniContentPanel(
                                       "Percentile rank of the average person in the County: ", round(hu_variable, 2), "<br>",
                                       "Percentile rank of the County: ", round(pnorm(scale(hu_variable)) * 100, 2)))
   leaflet() %>%
-    setView(lng = -97, lat = 40, zoom = 5) %>%
+    setView(lng = -97, lat = 40, zoom = 4) %>%
     addTiles() %>%
     addPolygons(
       data = cwa_map,

@@ -7,7 +7,7 @@ downloads <- "/Users/josephripberger/Dropbox (Univ. of Oklahoma)/Severe Weather 
 outputs <- "/Users/josephripberger/Dropbox (Univ. of Oklahoma)/Severe Weather and Society Dashboard/local files/outputs/" # define locally!!!
 
 # Make Shapefile ----------------------------------------
-state_shp <- read_sf(paste0(downloads, "s_22mr22"), "s_22mr22")
+state_shp <- read_sf(paste0(downloads, "s_22mr22"), "s_22mr22") # TODO: update with predictions
 
 # Write Shapefile ----------------------------------------
 state_shp <- ms_simplify(state_shp, keep = 0.05)

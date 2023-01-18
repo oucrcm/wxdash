@@ -6,7 +6,7 @@ This repository archives and documents the data and `R code` necessary to produc
  <img src="https://raw.githubusercontent.com/oucrcm/wxdash/master/example_dash.png" width="500" alt="chart">
 </a>
 
-WxDash is currenrly maintained by researchers at the University of Oklahoma's [National Institute for Risk and Resilience](risk.ou.edu). WxDash uses data from a yearly survey of US adults to systematically measure, map, and track forecast and warning reception, comprehension, and response in counties and County Warning Areas across the country. Survey data are available in the [Extreme Weather and Society Survey Dataverse](https://dataverse.harvard.edu/dataverse/wxsurvey).
+WxDash is currently maintained by researchers at the University of Oklahoma's [National Institute for Risk and Resilience](risk.ou.edu). WxDash uses data from a yearly survey of US adults to systematically measure, map, and track forecast and warning reception, comprehension, and response in counties and County Warning Areas across the country. Survey data are available in the [Extreme Weather and Society Survey Dataverse](https://dataverse.harvard.edu/dataverse/wxsurvey).
 
 This README provides a short overview of each step in the project. As the steps below indicate, the code makes use of data and GIS files from multiple sources. Users who wish to replicate this code will have to begin by downloading these files. The code assumes that users are storing them in a local folder called `Downloads`. [Here](https://www.dropbox.com/sh/g6f0kyq5rlufq02/AAD4u06hr5RqqRXH_HCCurCja?dl=0) is a pre-made folder that contains all of these files. Users can find and download the original files here:
 

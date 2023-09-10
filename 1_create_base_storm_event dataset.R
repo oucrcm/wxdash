@@ -2,8 +2,8 @@ library(data.table)
 library(tidyverse)
 library(sf)
 
-downloads <- "/Users/josephripberger/Dropbox/Severe Weather and Society Dashboard/local files/downloads/" # define locally!!!
-outputs <- "/Users/josephripberger/Dropbox/Severe Weather and Society Dashboard/local files/outputs/" # define locally!!!
+downloads <- "/Users/josephripberger/Dropbox (Univ. of Oklahoma)/Severe Weather and Society Dashboard/local files/downloads/" # define locally!!!
+outputs <- "/Users/josephripberger/Dropbox (Univ. of Oklahoma)/Severe Weather and Society Dashboard/local files/outputs/" # define locally!!!
 
 storm_data <- list.files(downloads, pattern = "StormEvents_details", full.names = TRUE) # https://www1.ncdc.noaa.gov/pub/data/swdi/stormevents/csvfiles/
 storm_data <- lapply(storm_data, fread, sep = ",")
@@ -67,7 +67,7 @@ county_storm_data_counts <- storm_data %>%
 # FIX NECESSARY: Many events are reported by forecast zone (CZTYPE of "Z") rather than county (CZTYPE of "C"). For these events, the CNTY_FIPS is likely incorrect. 
 # Perhaps use CZ_NAME to get county info in the future? See https://cran.r-project.org/web/packages/noaastormevents/vignettes/details.html for example...
 
-drought_data <- list.files(downloads, pattern = "dm_export", full.names = TRUE) # https://droughtmonitor.unl.edu/Data/DataDownload/ComprehensiveStatistics.aspx
+drought_data <- list.files(downloads, pattern = "dm_export", full.names = TRUE) # https://droughtmonitor.unl.edu/DmData/DataDownload/ComprehensiveStatistics.aspx
 drought_data <- lapply(drought_data, fread, sep = ",")
 drought_data <- rbindlist(drought_data)
 drought_data$drought <- ifelse(drought_data$D1 > 0 | drought_data$D2 > 0 | drought_data$D3 > 0 | drought_data$D4 > 0, 1, 0)
@@ -97,7 +97,7 @@ cwa_data <- left_join(cwa_storm_data_counts, cwa_drought_data_counts, by = "CWA"
 county_data <- left_join(county_storm_data_counts, county_drought_data_counts, by = "FIPS")
 
 nrow(cwa_data) # 125 CWAs
-nrow(county_data) # 5460 FIPS codes (many are incorrect, see fix note above)
+nrow(county_data) # 5725 FIPS codes (many are incorrect, see fix note above)
 
 # Join With County Shapefile (c_03mr20) -------------------------
 cwa_cnty_shp <- read_sf(paste0(downloads, "c_03mr20"), "c_03mr20") %>% as_tibble() %>% select(CWA, FIPS)
@@ -111,12 +111,12 @@ cwa_data <- cwa_cnty_shp %>%
   distinct(CWA, .keep_all = FALSE) %>% 
   left_join(., cwa_data, by = "CWA") 
 cwa_data[is.na(cwa_data)] <- 0 # Change all NAs to 0
-nrow(cwa_data) # 123 CWAs, removes ASO, EYW, GUA
+nrow(cwa_data) # 116 CWAs, removes ASO, EYW, GUA
 
 county_data <- cwa_cnty_shp %>% 
   left_join(., county_data, by = "FIPS")
 county_data[is.na(county_data)] <- 0 # Change all NAs to 0
-nrow(county_data) # 3231 FIPS codes, removes incorrect FIPS codes from forecast zones
+nrow(county_data) # 3108 FIPS codes, removes incorrect FIPS codes from forecast zones
 
 # Standardize -------------------------
 cwa_data <- cwa_data %>% 

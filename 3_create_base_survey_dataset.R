@@ -38,10 +38,27 @@ WX21 <- read_csv(paste0(downloads, "WX21_data_wtd.csv")) %>%
   mutate(survey_year = "2021", 
          survey_hazard = "WX",
          survey_language = "English")
-WX21SP <- read_csv(paste0(downloads, "WX21_spanish_data_wtd.csv")) %>% 
-  mutate(survey_year = "2021", 
+# WX21SP <- read_csv(paste0(downloads, "WX21_spanish_data_wtd.csv")) %>% 
+#   mutate(survey_year = "2021", 
+#          survey_hazard = "WX",
+#          survey_language = "Spanish")
+WX22 <- read_csv(paste0(downloads, "WX22_data_wtd.csv")) %>% 
+  mutate(survey_year = "2022", 
          survey_hazard = "WX",
-         survey_language = "Spanish")
+         survey_language = "English")
+# WX22SP <- read_csv(paste0(downloads, "WX22_spanish_data_wtd.csv")) %>% 
+#   mutate(survey_year = "2022", 
+#          survey_hazard = "WX",
+#          survey_language = "Spanish")
+WX23 <- read_csv(paste0(downloads, "WX23_data_wtd.csv")) %>% 
+  mutate(survey_year = "2023", 
+         survey_hazard = "WX",
+         survey_language = "English")
+# WX23SP <- read_csv(paste0(downloads, "WX23_spanish_data_wtd.csv")) %>% 
+#   mutate(survey_year = "2023", 
+#          survey_hazard = "WX",
+#          survey_language = "Spanish")
+
 TC20 <- read_csv(paste0(downloads, "TC20_data_wtd.csv")) %>% 
   mutate(survey_year = "2020",
          survey_hazard = "TC",
@@ -54,8 +71,16 @@ TC22 <- read_csv(paste0(downloads, "TC22_data_wtd.csv")) %>%
   mutate(survey_year = "2022",
          survey_hazard = "TC",
          survey_language = "English")
+TC23 <- read_csv(paste0(downloads, "TC23_data_wtd.csv")) %>% 
+  mutate(survey_year = "2023",
+         survey_hazard = "TC",
+         survey_language = "English")
+# TC23SP <- read_csv(paste0(downloads, "TC23_spanish_data_wtd.csv")) %>% 
+#   mutate(survey_year = "2023", 
+#          survey_hazard = "TC",
+#          survey_language = "Spanish")
 
-survey_data <- rbindlist(list(WX17, WX18, WX19, WX20, WX21, TC20, TC21, TC22), fill = TRUE)
+survey_data <- rbindlist(list(WX17, WX18, WX19, WX20, WX21, WX22, WX23, TC20, TC21, TC22, TC23), fill = TRUE)
 survey_data %>% count(survey_hazard, survey_year)
 
 # Identify respondent FIPS, CWA, and Region ------------------
@@ -68,7 +93,7 @@ zip_to_county <- zip_to_county %>%
 
 survey_data$zip <- str_pad(survey_data$zip, 5, side = "left", pad = 0)
 survey_data <- left_join(survey_data, zip_to_county, by = c("zip" = "ZIP")) 
-survey_data <- drop_na(survey_data, FIPS) # drops 70 respondents (invalid zipcodes)
+survey_data <- drop_na(survey_data, FIPS) # drops 82 respondents (invalid zipcodes)
 
 cwa_cnty_shp <- read_sf(paste0(downloads, "c_03mr20"), "c_03mr20") %>% as_tibble() %>% select(CWA, FIPS)
 cwa_cnty_shp$CWA <- substr(cwa_cnty_shp$CWA, start = 1, stop = 3) # Only keep first CWA in counties that span multiple CWAs
@@ -80,12 +105,13 @@ survey_data <- drop_na(survey_data, CWA) # drops 2 respondents (FIPS codes in PR
 
 cwa_shp <- read_sf(paste0(downloads, "w_03mr20"), "w_03mr20") %>% as_tibble() %>% select(CWA, Region)
 survey_data <- left_join(survey_data, cwa_shp, by = "CWA")
+survey_data %>% count(CWA, sort = TRUE)
 
 # Recode/Rename Variables -----------------------------
 survey_data$MALE <- factor(survey_data$gend)
 survey_data$AGE <- survey_data$age
 survey_data$AGE_GROUP <- factor(car::recode(survey_data$age, "18:34 = 1; 35:59 = 2; 60:110 = 3"))
-survey_data$HISP <-factor(survey_data$hisp)
+survey_data$HISP <-factor(survey_data$hisp) # missing 18 HISP obs. in WX17
 survey_data$RACE_GROUP <- factor(car::recode(survey_data$race, "1 = 1; 2 = 2; else = 3"))
 
 # Add Variables -----------------------------

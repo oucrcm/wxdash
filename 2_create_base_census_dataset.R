@@ -118,16 +118,21 @@ cnty_data_long <- left_join(cnty_data_long, cnty_storm_data, by = "FIPS")
 
 # SVI Data -------------------------
 # https://svi.cdc.gov/Documents/Data/2018_SVI_Data/SVI2018Documentation.pdf # todo: update with 2020 data
-svi_data <- read_csv(paste0(downloads, "SVI2018_US_COUNTY.csv")) %>% 
+# svi_data <- read_csv(paste0(downloads, "SVI2018_US_COUNTY.csv")) %>% 
+#   select(FIPS, starts_with("EP_"), starts_with("RPL")) %>% 
+#   mutate_all(~ifelse(. == -999, NA, .))
+
+# https://www.atsdr.cdc.gov/placeandhealth/svi/data_documentation_download.html
+svi_data <- read_csv(paste0(downloads, "SVI_2020_US_county.csv")) %>% 
   select(FIPS, starts_with("EP_"), starts_with("RPL")) %>% 
   mutate_all(~ifelse(. == -999, NA, .))
 
 # Missing data in RIO ARRIBA, NM (FIPS 35039); REPLACE WITH DATA FROM SAN JUAN, NM (FIPS 35045)
-svi_data$EP_POV <- ifelse(svi_data$FIPS == "35039", svi_data[svi_data$FIPS == "35043", ]$EP_POV, svi_data$EP_POV)
-svi_data$EP_UNEMP <- ifelse(svi_data$FIPS == "35039", svi_data[svi_data$FIPS == "35043", ]$EP_UNEMP, svi_data$EP_UNEMP)
-svi_data$EP_PCI <- ifelse(svi_data$FIPS == "35039", svi_data[svi_data$FIPS == "35043", ]$EP_PCI, svi_data$EP_PCI)
-svi_data$RPL_THEME1 <- ifelse(svi_data$FIPS == "35039", svi_data[svi_data$FIPS == "35043", ]$RPL_THEME1, svi_data$RPL_THEME1)
-svi_data$RPL_THEMES <- ifelse(svi_data$FIPS == "35039", svi_data[svi_data$FIPS == "35043", ]$RPL_THEMES, svi_data$RPL_THEMES)
+# svi_data$EP_POV <- ifelse(svi_data$FIPS == "35039", svi_data[svi_data$FIPS == "35043", ]$EP_POV, svi_data$EP_POV)
+# svi_data$EP_UNEMP <- ifelse(svi_data$FIPS == "35039", svi_data[svi_data$FIPS == "35043", ]$EP_UNEMP, svi_data$EP_UNEMP)
+# svi_data$EP_PCI <- ifelse(svi_data$FIPS == "35039", svi_data[svi_data$FIPS == "35043", ]$EP_PCI, svi_data$EP_PCI)
+# svi_data$RPL_THEME1 <- ifelse(svi_data$FIPS == "35039", svi_data[svi_data$FIPS == "35043", ]$RPL_THEME1, svi_data$RPL_THEME1)
+# svi_data$RPL_THEMES <- ifelse(svi_data$FIPS == "35039", svi_data[svi_data$FIPS == "35043", ]$RPL_THEMES, svi_data$RPL_THEMES)
 
 svi_data <- cnty_data_long %>% 
   select(FIPS, TOT_POP, CWA) %>% 
@@ -139,15 +144,14 @@ svi_data <- cnty_data_long %>%
 cnty_data_long <- left_join(cnty_data_long, svi_data %>% select(-c(TOT_POP, CWA)), by = "FIPS")
 
 cwa_svi_data <- svi_data %>% 
-  mutate_at(vars(EP_POV:RPL_THEMES), list(~ . * TOT_POP_PROP_CWA)) %>% 
+  mutate_at(vars(EP_POV150:RPL_THEMES), list(~ . * TOT_POP_PROP_CWA)) %>% 
   group_by(CWA) %>% 
-  summarize_at(vars(EP_POV:RPL_THEMES), list(sum))
+  summarize_at(vars(EP_POV150:RPL_THEMES), list(sum))
 cwa_data_long <- left_join(cwa_data_long, cwa_svi_data, by = "CWA")
 
-cnty_data_long <- cnty_data_long %>% rename_at(vars(EP_POV:RPL_THEMES), ~paste0("FIPS_", .))
-cwa_data_long <- cwa_data_long %>% rename_at(vars(EP_POV:RPL_THEMES), ~paste0("CWA_", .))
+cnty_data_long <- cnty_data_long %>% rename_at(vars(EP_POV150:RPL_THEMES), ~paste0("FIPS_", .))
+cwa_data_long <- cwa_data_long %>% rename_at(vars(EP_POV150:RPL_THEMES), ~paste0("CWA_", .))
 
 # Output Data -------------------------
 write_csv(cwa_data_long, paste0(outputs, "base_cwa_census_data.csv"))
 write_csv(cnty_data_long, paste0(outputs, "base_county_census_data.csv"))
-

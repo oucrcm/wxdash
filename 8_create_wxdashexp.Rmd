@@ -1,5 +1,5 @@
 ---
-title: "WxDash"
+title: "WxDashEXP"
 resource_files:
 - outputs/cwa_estimates/cwa_estimates.dbf
 - outputs/cwa_estimates/cwa_estimates.prj
@@ -34,18 +34,22 @@ library(DT)
 library(cowplot)
 library(htmlwidgets)
 
-state_map <- read_sf("outputs/state_estimates")# TODO: include estimates in next update (empty files for now)
+vars_to_normalize <- c("TO_SUB_COM", "ALL_READY", "PER_SNO", "TO_RECEP", "PER_FLO", "PER_DRO", "TO_EFFICAC", "HU_SUB_COM",
+                       "HU_RESP", "PER_HEA", "PER_TOR", "PER_COL", "TO_RESP", "PER_HUR", "HU_RECEP", "PER_FIR", "HU_OBJ_COM", 
+                       "TO_OBJ_COM", "COLD", "FIRE", "FLOOD", "HEAT", "HURR", "SNOW", "TORN", "DROUGHT") # TODO: reorder these
+
+state_map <- read_sf("outputs/state_estimates") # TODO: include estimates in next update (empty files for now)
 state_map <- st_transform(state_map, "+proj=longlat +datum=WGS84")
 
 cwa_map <- read_sf("outputs/cwa_estimates")
 cwa_map <- cwa_map %>% 
-  mutate_at(vars(c(TO_RECEP:ALL_READY), c(COLD:DROUGHT)), list(~pnorm(.) * 100)) # convert z-scores to percentile ranks
+  mutate_at(vars(all_of(vars_to_normalize)), list(~pnorm(.) * 100)) # convert z-scores to percentile ranks
 cwa_map$CWA <- as.character(cwa_map$CWA)
 cwa_map <- st_transform(cwa_map, "+proj=longlat +datum=WGS84")
 
 fips_map <- read_sf("outputs/county_estimates")
 fips_map <- fips_map %>% 
-  mutate_at(vars(c(TO_RECEP:ALL_READY), c(COLD:DROUGHT)), list(~pnorm(.) * 100)) # convert z-scores to percentile ranks
+  mutate_at(vars(all_of(vars_to_normalize)), list(~pnorm(.) * 100)) # convert z-scores to percentile ranks
 fips_map$CWA <- as.character(fips_map$CWA)
 fips_map <- st_transform(fips_map, "+proj=longlat +datum=WGS84")
 

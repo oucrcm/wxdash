@@ -113,3 +113,4 @@ cwa_all_ready_fit <- lmer(all_ready ~ 1 + MALE + AGE_GROUP + HISP + RACE_GROUP +
                               CWA_RPL_THEME1 + CWA_RPL_THEME2 + CWA_RPL_THEME3 + CWA_RPL_THEME4, 
                            data = survey_data)
 saveRDS(cwa_all_ready_fit, paste0(outputs, "cwa_models/cwa_all_ready_fit.Rds"))
+

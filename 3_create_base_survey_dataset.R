@@ -154,11 +154,11 @@ cwa_census_data <- read_csv(paste0(outputs, "base_cwa_census_data.csv"))
 county_census_data <- read_csv(paste0(outputs, "base_county_census_data.csv"))
 
 cwa_svi_data <- cwa_census_data %>% 
-  select(CWA, CWA_EP_POV:CWA_RPL_THEMES) %>% 
+  select(CWA, CWA_EP_POV150:CWA_RPL_THEMES) %>% 
   distinct(CWA, .keep_all = TRUE)
 
 county_svi_data <- county_census_data %>% 
-  select(FIPS, FIPS_EP_POV:FIPS_RPL_THEMES) %>% 
+  select(FIPS, FIPS_EP_POV150:FIPS_RPL_THEMES) %>% 
   distinct(FIPS, .keep_all = TRUE)
 
 survey_data <- left_join(survey_data, cwa_svi_data, by = "CWA")

@@ -10,10 +10,11 @@ downloads <- "/Users/josephripberger/Dropbox (Univ. of Oklahoma)/Severe Weather 
 outputs <- "/Users/josephripberger/Dropbox (Univ. of Oklahoma)/Severe Weather and Society Dashboard/local files/outputs/" # define locally!!!
 
 # Census Data ------------------------- 
-# Codebook: https://www2.census.gov/programs-surveys/popest/technical-documentation/file-layouts/2020-2022/cc-est2022-alldata.pdf
-data <- fread("https://www2.census.gov/programs-surveys/popest/datasets/2020-2022/counties/asrh/cc-est2022-all.csv")
+# Codebook: https://www2.census.gov/programs-surveys/popest/technical-documentation/file-layouts/2020-2021/cc-est2021-alldata.pdf
+data <- fread("https://www2.census.gov/programs-surveys/popest/datasets/2020-2021/counties/asrh/cc-est2021-all.csv")
+# Note Connecticut changed to planning regions instead of counties in 2022: https://www.federalregister.gov/documents/2022/06/06/2022-12063/change-to-county-equivalents-in-the-state-of-connecticut
 
-data <- subset(data, YEAR == 4) # 7/1/2022
+data <- subset(data, YEAR == 3) # 7/1/2021
 data <- subset(data, AGEGRP %in% 4:18) # Age 15 to 19 years - Age 85 years or older
 data <- subset(data, STNAME %ni% c("Alaska", "Hawaii"))
 
@@ -83,11 +84,11 @@ data_long <- merge(data_long, tot_data, by = "FIPS", all.x = TRUE)
 org_data <- fread("https://www2.census.gov/programs-surveys/popest/datasets/2020-2022/counties/asrh/cc-est2022-all.csv")
 org_data$FIPS <- paste0(formatC(org_data$STATE, width = 2, format = "d", flag = "0"), 
                     formatC(org_data$COUNTY, width = 3, format = "d", flag = "0"))
-org_data <- subset(org_data, AGEGRP == 0 & YEAR == 4 & STNAME %ni% c("Alaska", "Hawaii"))
+org_data <- subset(org_data, AGEGRP == 0 & YEAR == 3 & STNAME %ni% c("Alaska", "Hawaii"))
 data_long <- merge(data_long, with(org_data, data.frame(FIPS, STATE, COUNTY, STNAME, CTYNAME)), by = "FIPS", all.x = TRUE)
 data_long <- data_long[,c("STATE","COUNTY","STNAME","CTYNAME","FIPS","MALE","AGE_GROUP","HISP","RACE_GROUP","DEMGRP_POP","TOT_POP")]
 data_long$DEMGRP_PROP <- data_long$DEMGRP_POP / data_long$TOT_POP
-nrow(data_long) / 36 # data on 3108 counties
+nrow(data_long) / 36 # data on 3109 counties
 
 # Join With County Shapefile (c_03mr20) -------------------------
 cwa_cnty_shp <- read_sf(paste0(downloads, "c_03mr20"), "c_03mr20") %>% as_tibble() %>% select(CWA, FIPS)

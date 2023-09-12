@@ -762,9 +762,9 @@ Sidebar {.sidebar data-width=300}
 ```{r}
 ts_data <- survey_data %>%
   select(data.frame(groups)$groups, follow:risk_fire, alert_und, nws_trust:wx_info8, tor_map_und:svr_watchwarn_und, rec_all:rec_large_group, rec_stream,
-         resp_ignore:resp_large_group, resep_stream, wthr_info_paper:wthr_info_phone, rq_1:rq_10, to_recep, to_subj_comp, to_obj_comp, to_resp, all_ready)
+         resp_ignore:resp_large_group, resep_stream, wthr_info_paper:wthr_info_phone)
 selectInput(inputId = 'ts_group', label = 'Select a grouping', choices = groups)
-checkboxInput(inputId = 'scale', label = 'Show text full y-scale?', value = FALSE)
+# checkboxInput(inputId = 'scale', label = 'Show full y-scale?', value = FALSE) #TODO: fix this in a future version
 ```
 **Notes.**<br/>
 Click on a survey question in the table to the right and a subgroup in the drop-down list above to see the distribution of survey responses to each question by population subgroup.
@@ -790,9 +790,10 @@ renderPlot({
     theme(title = element_text(size = 14)) +
     scale_color_viridis(discrete = TRUE) +
     theme(plot.title = element_textbox_simple(margin = margin(0, 0, 22, 0), fill = NA))
-  ps <- p + lims(y = c(min(ts_data[, ts_select_react() %>% pull(var = id)], na.rm = TRUE), max(ts_data[, ts_select_react() %>% pull(var = id)], na.rm = TRUE)))
-  if (input$scale == FALSE) {print(p)}
-  if (input$scale == TRUE) {print(ps)}
+  print(p)
+  # ps <- p + lims(y = c(min(ts_select_react() %>% pull(var = id), na.rm = TRUE), max(ts_select_react()() %>% pull(var = id), na.rm = TRUE)))
+  # if (input$scale == FALSE) {print(p)}
+  # if (input$scale == TRUE) {print(ps)}
 })
 ```
 

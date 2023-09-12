@@ -52,6 +52,7 @@ fips_map <- fips_map %>%
   mutate_at(vars(all_of(vars_to_normalize)), list(~pnorm(.) * 100)) # convert z-scores to percentile ranks
 fips_map$CWA <- as.character(fips_map$CWA)
 fips_map <- st_transform(fips_map, "+proj=longlat +datum=WGS84")
+# fips_map %>% filter(is.na(TO_SUB_COM)) %>% select(FIPS)
 
 survey_data <- fread("outputs/base_survey_data.csv")
 

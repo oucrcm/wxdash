@@ -1,5 +1,5 @@
 ---
-title: "WxDash"
+title: "WxDashEXP"
 resource_files:
 - outputs/cwa_estimates/cwa_estimates.dbf
 - outputs/cwa_estimates/cwa_estimates.prj
@@ -19,18 +19,6 @@ output:
     theme: simplex
 ---
 
-<head>
-<!-- Global site tag (gtag.js) - Google Analytics -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=UA-176778534-1"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-
-  gtag('config', 'UA-176778534-1');
-</script>
-</head> 
-
 ```{r global, include = FALSE}
 library(leaflet)
 library(flexdashboard)
@@ -45,19 +33,24 @@ library(data.table)
 library(DT)
 library(cowplot)
 library(htmlwidgets)
+library(srvyr)
 
-state_map <- read_sf("outputs/state_estimates")# TODO: include estimates in next update (empty files for now)
+vars_to_normalize <- c("TO_SUB_COM", "ALL_READY", "PER_SNO", "TO_RECEP", "PER_FLO", "PER_DRO", "TO_EFFICAC", "HU_SUB_COM",
+                       "HU_RESP", "PER_HEA", "PER_TOR", "PER_COL", "TO_RESP", "PER_HUR", "HU_RECEP", "PER_FIR", "HU_OBJ_COM", 
+                       "TO_OBJ_COM", "COLD", "FIRE", "FLOOD", "HEAT", "HURR", "SNOW", "TORN", "DROUGHT") # TODO: reorder these
+
+state_map <- read_sf("outputs/state_estimates") # TODO: include estimates in next update (empty files for now)
 state_map <- st_transform(state_map, "+proj=longlat +datum=WGS84")
 
 cwa_map <- read_sf("outputs/cwa_estimates")
 cwa_map <- cwa_map %>% 
-  mutate_at(vars(c(TO_RECEP:ALL_READY), c(COLD:DROUGHT)), list(~pnorm(.) * 100)) # convert z-scores to percentile ranks
+  mutate_at(vars(all_of(vars_to_normalize)), list(~pnorm(.) * 100)) # convert z-scores to percentile ranks
 cwa_map$CWA <- as.character(cwa_map$CWA)
 cwa_map <- st_transform(cwa_map, "+proj=longlat +datum=WGS84")
 
 fips_map <- read_sf("outputs/county_estimates")
 fips_map <- fips_map %>% 
-  mutate_at(vars(c(TO_RECEP:ALL_READY), c(COLD:DROUGHT)), list(~pnorm(.) * 100)) # convert z-scores to percentile ranks
+  mutate_at(vars(all_of(vars_to_normalize)), list(~pnorm(.) * 100)) # convert z-scores to percentile ranks
 fips_map$CWA <- as.character(fips_map$CWA)
 fips_map <- st_transform(fips_map, "+proj=longlat +datum=WGS84")
 
@@ -665,27 +658,20 @@ num <- survey_data %>%
 
 cat <- survey_data %>%
   summarise_all(n_distinct) %>%
-  select_if(any_vars((.) <= 11))
+  select_if(any_vars((.) <= 11)) # all cat for now
 
 d <- reactive({
-  survey_data %>%
-    group_by(!!as.name(input$exp_group), !!as.name(input$exp_variable)) %>%
-    drop_na(input$exp_group, input$exp_variable) %>%
-    summarize(n = n()) %>%
-    mutate(p = round(n/sum(n) * 100)) %>%
-    mutate(l = paste0(p, "%")) %>%
-    mutate(resp = factor(!!as.name(input$exp_variable)))
-})
-
-d <- reactive({
-  survey_data %>%
+  survey_data %>% 
+    drop_na(weightfactor, input$exp_group, select_react() %>% pull(var = id)) %>% 
+    as_survey_design(ids = 1, weights = weightfactor) %>% 
     group_by(!!as.name(input$exp_group), !!as.name(select_react() %>% pull(var = id))) %>%
-    drop_na(input$exp_group, select_react() %>% pull(var = id)) %>%
-    summarize(n = n()) %>%
-    mutate(p = round(n/sum(n) * 100)) %>%
-    mutate(l = paste0(p, "%")) %>%
+    summarize(p = survey_mean(vartype = "ci")) %>% 
+    mutate(p = round(p * 100, 0), p_low = p_low * 100, p_upp = p_upp * 100) %>% 
+    mutate(l = paste0(p, "%")) %>% 
     mutate(resp = factor(!!as.name(select_react() %>% pull(var = id))))
-})
+  })
+
+# renderTable({d()}) # use to see raw results in table
 
 renderPlot({
   p1 <- ggplot(d() %>% drop_na(input$exp_group, select_react() %>% pull(var = id)),
@@ -722,7 +708,7 @@ renderPlot({
 
   if (select_react() %>% pull(var = id) %in% names(cat)) {print(p1)}
   if (select_react() %>% pull(var = id) %in% names(num)) {print(p2)}
-})
+  })
 ```
 
 Row
@@ -769,10 +755,10 @@ Sidebar {.sidebar data-width=300}
 <br/>
 ```{r}
 ts_data <- survey_data %>%
-  select(data.frame(groups)$groups, follow:risk_fire, alert_und, nws_trust:wx_info8, tor_map_und:svr_watchwarn_und, rec_all:rec_large_group, rec_stream,
-         resp_ignore:resp_large_group, resep_stream, wthr_info_paper:wthr_info_phone, rq_1:rq_10, to_recep, to_subj_comp, to_obj_comp, to_resp, all_ready)
+  select(data.frame(groups)$groups, weightfactor, follow:risk_fire, alert_und, nws_trust:wx_info8, tor_map_und:svr_watchwarn_und, rec_all:rec_large_group, 
+         rec_stream, resp_ignore:resp_large_group, resep_stream, wthr_info_paper:wthr_info_phone)
 selectInput(inputId = 'ts_group', label = 'Select a grouping', choices = groups)
-checkboxInput(inputId = 'scale', label = 'Show text full y-scale?', value = FALSE)
+# checkboxInput(inputId = 'scale', label = 'Show full y-scale?', value = FALSE) #TODO: fix this in a future version
 ```
 **Notes.**<br/>
 Click on a survey question in the table to the right and a subgroup in the drop-down list above to see the distribution of survey responses to each question by population subgroup.
@@ -783,24 +769,39 @@ Row
 ### Time Series Plot
 
 ```{r}
+g <- reactive({
+  ts_data %>%
+    drop_na(weightfactor, input$ts_group, ts_select_react() %>% pull(var = id)) %>% 
+    as_survey_design(ids = 1, weights = weightfactor) %>%
+    group_by(Year, !!as.name(input$ts_group)) %>%
+    summarize(mean = survey_mean(!!as.name(ts_select_react() %>% pull(var = id)), vartype = "ci")) %>% 
+    mutate(mean = round(mean, 2))
+})
+
+# renderTable({g()}) # use to see raw results in table
+
 renderPlot({
-  p <- ggplot(ts_data %>% drop_na(input$ts_group, ts_select_react() %>% pull(var = id)),
-  aes_string(x = "Year", y = ts_select_react() %>% pull(var = id), color = input$ts_group, group = input$ts_group)) +
-    stat_summary(size = 1.5, geom = "pointrange", position = position_dodge(width = 0.25)) +
-    stat_summary(size = 1.5, geom = "line", position = position_dodge(width = 0.25)) +
+  # ylim <- c(min(ts_data[, ts_select_react() %>% pull(var = id)], na.rm = TRUE),
+  #           max(ts_data[, ts_select_react() %>% pull(var = id)], na.rm = TRUE))
+  p <- ggplot(g(), aes_string(x = "Year", y = "mean", color = input$ts_group, group = input$ts_group)) +
+    geom_point(position = position_dodge(width = 0.1), size = 3) +
+    geom_line(position = position_dodge(width = 0.1), size = 1) +
+    geom_errorbar(aes(ymin = mean_low, ymax = mean_upp), position = position_dodge(width = 0.1), width = 0, size = 1) +
     labs(x = "Year", y = "Mean", fill = "Group",
          title = variable_data[variable_data$id == ts_select_react() %>% pull(var = id), ]$question,
                   caption = paste0(
            "[",
-           variable_data[variable_data$id == select_react() %>% pull(var = id), ]$response_options,
+           variable_data[variable_data$id == ts_select_react() %>% pull(var = id), ]$response_options,
            "]")) +
+    # scale_y_continuous(breaks = min(ylim):max(ylim), limits = ylim, expand = expansion(mult = c(0, 0))) +
     theme_classic(base_size = 20) +
     theme(title = element_text(size = 14)) +
     scale_color_viridis(discrete = TRUE) +
     theme(plot.title = element_textbox_simple(margin = margin(0, 0, 22, 0), fill = NA))
-  ps <- p + lims(y = c(min(ts_data[, ts_select_react() %>% pull(var = id)], na.rm = TRUE), max(ts_data[, ts_select_react() %>% pull(var = id)], na.rm = TRUE)))
-  if (input$scale == FALSE) {print(p)}
-  if (input$scale == TRUE) {print(ps)}
+  print(p)
+  # ps <- p + lims(y = c(min(ts_select_react() %>% pull(var = id), na.rm = TRUE), max(ts_select_react()() %>% pull(var = id), na.rm = TRUE)))
+  # if (input$scale == FALSE) {print(p)}
+  # if (input$scale == TRUE) {print(ps)}
 })
 ```
 
@@ -862,22 +863,31 @@ Row {data-height=500}{.tabset .tabset-fade}
 ```{r}
 div(style = "font-size: 11px",
     selectInput(inputId = 'dem_variable', label = 'Select a demographic or theme', choices = c(
-      'Percentage of persons below poverty' = 'POV',
+      'Percentage of persons below 150% poverty estimate' = 'POV',
       'Percentage of civilian (age 16+) unemployed' = 'UNEMP',
-      'Per capita income' = 'PCI',
+      'Percentage of housing cost-burdened occupied housing units with annual income less than $75,000' = 'HBURD',
       'Percentage of persons with no high school diploma (age 25+)' = 'NOHSDP',
+      'Percentage uninsured in the total civilian noninstitutionalized population' = 'UNINSUR',
       'Percentage of persons aged 65 and older' = 'AGE65',
       'Percentage of persons aged 17 and younger' = 'AGE17',
       'Percentage of civilian noninstitutionalized population with a disability' = 'DISABL',
       'Percentage of single parent households with children under 18' = 'SNGPNT',
-      'Percentage minority (all persons except white, non-Hispanic)' = 'MINRTY',
       'Percentage of persons (age 5+) who speak English less than well' = 'LIMENG',
+      'Percentage minority (all persons except white, non-Hispanic)' = 'MINRTY',
       'Percentage of housing in structures with 10 or more units' = 'MUNIT',
       'Percentage of mobile homes' = 'MOBILE',
       'Percentage of occupied housing units with more people than rooms' = 'CROWD',
       'Percentage of households with no vehicle available' = 'NOVEH',
       'Percentage of persons in institutionalized group quarters' = 'GROUPQ',
-      'Theme 1 (z-score): Socioeconomic status (below poverty, unemployed, income, no high school diploma)' = 'THEME1',
+      'Percentage of households without a computer with a broadband Internet subscription estimate' = 'NOINT',
+      'Percentage of Black/African American, not Hispanic or Latino persons' = 'AFAM',
+      'Percentage of Hispanic or Latino persons' = 'HISP',
+      'Percentage of Asian, not Hispanic or Latino persons' = 'ASIAN',
+      'Percentage of American Indian or Alaska Native, not Hispanic or Latino persons' = 'AIAN',
+      'Percentage of Native Hawaiian or Other Pacific Islander, not Hispanic or Latino persons' = 'NHPI',
+      'Percentage of two or more races, not Hispanic or Latino persons' = 'TWOMORE',
+      'Percentage of some other race, not Hispanic or Latino persons' = 'OTHERRACE',
+      'Percentage of persons in institutionalized group quarters' = 'THEME1',
       'Theme 2 (z-score): Household composition & disability (aged 65 or older, aged 17 or younger, older than age 5 with a disability, single-parent households)' = 'THEME2',
       'Theme 3 (z-score): Minority status & language (minority, speak English “less than well”)' = 'THEME3',
       'Theme 4 (z-score): Housing type & transportation (multi-unit structures, mobile homes, crowding, no vehicle, group quarters)' = 'THEME4',

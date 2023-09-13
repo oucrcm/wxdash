@@ -1,5 +1,5 @@
 ---
-title: "WxDashEXP"
+title: "WxDash"
 resource_files:
 - outputs/cwa_estimates/cwa_estimates.dbf
 - outputs/cwa_estimates/cwa_estimates.prj
@@ -18,6 +18,18 @@ output:
     source_code: "https://github.com/oucrcm/wxdash"
     theme: simplex
 ---
+
+<head>
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-176778534-1"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-176778534-1');
+</script>
+</head> 
 
 ```{r global, include = FALSE}
 library(leaflet)

@@ -774,31 +774,35 @@ g <- reactive({
     drop_na(weightfactor, input$ts_group, ts_select_react() %>% pull(var = id)) %>% 
     as_survey_design(ids = 1, weights = weightfactor) %>%
     group_by(Year, !!as.name(input$ts_group)) %>%
-    summarize(mean = survey_mean(!!as.name(ts_select_react() %>% pull(var = id)), vartype = "ci"))
+    summarize(mean = survey_mean(!!as.name(ts_select_react() %>% pull(var = id)), vartype = "ci")) %>% 
+    mutate(mean = round(mean, 2))
 })
 
-renderTable({g()}) # use to see raw results in table
+# renderTable({g()}) # use to see raw results in table
 
-# renderPlot({
-#   p <- ggplot(ts_data %>% drop_na(input$ts_group, ts_select_react() %>% pull(var = id)),
-#   aes_string(x = "Year", y = ts_select_react() %>% pull(var = id), color = input$ts_group, group = input$ts_group)) +
-#     stat_summary(size = 1.5, geom = "pointrange", position = position_dodge(width = 0.25)) +
-#     stat_summary(size = 1.5, geom = "line", position = position_dodge(width = 0.25)) +
-#     labs(x = "Year", y = "Mean", fill = "Group",
-#          title = variable_data[variable_data$id == ts_select_react() %>% pull(var = id), ]$question,
-#                   caption = paste0(
-#            "[",
-#            variable_data[variable_data$id == select_react() %>% pull(var = id), ]$response_options,
-#            "]")) +
-#     theme_classic(base_size = 20) +
-#     theme(title = element_text(size = 14)) +
-#     scale_color_viridis(discrete = TRUE) +
-#     theme(plot.title = element_textbox_simple(margin = margin(0, 0, 22, 0), fill = NA))
-#   print(p)
-#   # ps <- p + lims(y = c(min(ts_select_react() %>% pull(var = id), na.rm = TRUE), max(ts_select_react()() %>% pull(var = id), na.rm = TRUE)))
-#   # if (input$scale == FALSE) {print(p)}
-#   # if (input$scale == TRUE) {print(ps)}
-# })
+renderPlot({
+  p <- ggplot(g(), aes_string(x = "Year", y = "mean", color = input$ts_group, group = input$ts_group)) +
+    geom_point(position = position_dodge(width = 0.1), size = 3) +
+    geom_line(position = position_dodge(width = 0.1), size = 1) +
+  #   ggplot(ts_data %>% drop_na(input$ts_group, ts_select_react() %>% pull(var = id)),
+  # aes_string(x = "Year", y = ts_select_react() %>% pull(var = id), color = input$ts_group, group = input$ts_group)) +
+  #   stat_summary(size = 1.5, geom = "pointrange", position = position_dodge(width = 0.25)) +
+  #   stat_summary(size = 1.5, geom = "line", position = position_dodge(width = 0.25)) +
+    labs(x = "Year", y = "Mean", fill = "Group",
+         title = variable_data[variable_data$id == ts_select_react() %>% pull(var = id), ]$question,
+                  caption = paste0(
+           "[",
+           variable_data[variable_data$id == select_react() %>% pull(var = id), ]$response_options,
+           "]")) +
+    theme_classic(base_size = 20) +
+    theme(title = element_text(size = 14)) +
+    scale_color_viridis(discrete = TRUE) +
+    theme(plot.title = element_textbox_simple(margin = margin(0, 0, 22, 0), fill = NA))
+  print(p)
+  # ps <- p + lims(y = c(min(ts_select_react() %>% pull(var = id), na.rm = TRUE), max(ts_select_react()() %>% pull(var = id), na.rm = TRUE)))
+  # if (input$scale == FALSE) {print(p)}
+  # if (input$scale == TRUE) {print(ps)}
+})
 
 ```
 

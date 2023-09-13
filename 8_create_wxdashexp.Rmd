@@ -803,7 +803,6 @@ renderPlot({
   # if (input$scale == FALSE) {print(p)}
   # if (input$scale == TRUE) {print(ps)}
 })
-
 ```
 
 Row

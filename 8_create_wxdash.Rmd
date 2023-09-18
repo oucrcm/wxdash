@@ -769,7 +769,7 @@ Sidebar {.sidebar data-width=300}
 ts_data <- survey_data %>%
   select(data.frame(groups)$groups, weightfactor, follow:risk_fire, alert_und, nws_trust:wx_info8, tor_map_und:svr_watchwarn_und, rec_all:rec_large_group, 
          rec_stream, resp_ignore:resp_large_group, resep_stream, wthr_info_paper:wthr_info_phone)
-selectInput(inputId = 'ts_group', label = 'Select a grouping', choices = groups)
+selectInput(inputId = 'ts_group', label = 'Select a grouping', choices = groups[ !groups == "Year"]) # remove survey year from list
 # checkboxInput(inputId = 'scale', label = 'Show full y-scale?', value = FALSE) #TODO: fix this in a future version
 ```
 **Notes.**<br/>

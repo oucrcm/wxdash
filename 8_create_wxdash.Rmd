@@ -314,7 +314,7 @@ selectInput(inputId = 'event', label = 'Select a type of event', choices = c(
   'Drought' = 'PER_DRO',
   'Extreme Cold Temperatures' = 'PER_COL',
   'Snow/Ice Storms' = 'PER_SNO',
-  'Tornados' = 'PER_TOR',
+  'Tornadoes' = 'PER_TOR',
   'Flooding' = 'PER_FLO',
   'Hurricanes' = 'PER_HUR',
   'Wildfires' = 'PER_FIR'),

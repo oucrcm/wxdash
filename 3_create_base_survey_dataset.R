@@ -59,6 +59,8 @@ WX23 <- read_csv(paste0(downloads, "WX23_data_wtd.csv")) %>%
 #          survey_hazard = "WX",
 #          survey_language = "Spanish")
 
+# add WX24 when available
+
 TC20 <- read_csv(paste0(downloads, "TC20_data_wtd.csv")) %>% 
   mutate(survey_year = "2020",
          survey_hazard = "TC",

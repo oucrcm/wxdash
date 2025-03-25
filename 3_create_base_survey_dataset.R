@@ -38,28 +38,21 @@ WX21 <- read_csv(paste0(downloads, "WX21_data_wtd.csv")) %>%
   mutate(survey_year = "2021", 
          survey_hazard = "WX",
          survey_language = "English")
-# WX21SP <- read_csv(paste0(downloads, "WX21_spanish_data_wtd.csv")) %>% 
-#   mutate(survey_year = "2021", 
-#          survey_hazard = "WX",
-#          survey_language = "Spanish")
 WX22 <- read_csv(paste0(downloads, "WX22_data_wtd.csv")) %>% 
   mutate(survey_year = "2022", 
          survey_hazard = "WX",
          survey_language = "English")
-# WX22SP <- read_csv(paste0(downloads, "WX22_spanish_data_wtd.csv")) %>% 
-#   mutate(survey_year = "2022", 
-#          survey_hazard = "WX",
-#          survey_language = "Spanish")
 WX23 <- read_csv(paste0(downloads, "WX23_data_wtd.csv")) %>% 
   mutate(survey_year = "2023", 
          survey_hazard = "WX",
          survey_language = "English")
-# WX23SP <- read_csv(paste0(downloads, "WX23_spanish_data_wtd.csv")) %>% 
-#   mutate(survey_year = "2023", 
-#          survey_hazard = "WX",
-#          survey_language = "Spanish")
-
-# add WX24 when available
+WX24 <- read_csv(paste0(downloads, "WX24_data_wtd.csv")) %>% 
+  mutate(survey_year = "2024", 
+         survey_hazard = "WX",
+         survey_language = "English", 
+         end_date = as.Date(end_date),
+         rand_aft = as.character(rand_aft),
+         rand_eve = as.character(rand_aft))
 
 TC20 <- read_csv(paste0(downloads, "TC20_data_wtd.csv")) %>% 
   mutate(survey_year = "2020",
@@ -77,12 +70,31 @@ TC23 <- read_csv(paste0(downloads, "TC23_data_wtd.csv")) %>%
   mutate(survey_year = "2023",
          survey_hazard = "TC",
          survey_language = "English")
-# TC23SP <- read_csv(paste0(downloads, "TC23_spanish_data_wtd.csv")) %>% 
-#   mutate(survey_year = "2023", 
-#          survey_hazard = "TC",
-#          survey_language = "Spanish")
+TC24 <- read_csv(paste0(downloads, "TC24_data_wtd.csv")) %>% 
+  mutate(survey_year = "2024",
+         survey_hazard = "TC",
+         survey_language = "English", 
+         end_date = as.Date(end_date))
 
-survey_data <- rbindlist(list(WX17, WX18, WX19, WX20, WX21, WX22, WX23, TC20, TC21, TC22, TC23), fill = TRUE)
+WW21 <- read_csv(paste0(downloads, "WW21_data_wtd.csv")) %>% 
+  mutate(survey_year = "2021",
+         survey_hazard = "WW",
+         survey_language = "English")
+WW22 <- read_csv(paste0(downloads, "WW22_data_wtd.csv")) %>% 
+  mutate(survey_year = "2022",
+         survey_hazard = "WW",
+         survey_language = "English")
+WW23 <- read_csv(paste0(downloads, "WW23_data_wtd.csv")) %>% 
+  mutate(survey_year = "2023",
+         survey_hazard = "WW",
+         survey_language = "English")
+WW24 <- read_csv(paste0(downloads, "WW24_data_wtd.csv")) %>% 
+  mutate(survey_year = "2024",
+         survey_hazard = "WW",
+         survey_language = "English", 
+         end_date = as.Date(end_date))
+
+survey_data <- rbindlist(list(WX17, WX18, WX19, WX20, WX21, WX22, WX23, WX24, TC20, TC21, TC22, TC23, TC24, WW21, WW22, WW23, WW24), fill = TRUE)
 survey_data %>% count(survey_hazard, survey_year)
 
 # Identify respondent FIPS, CWA, and Region ------------------

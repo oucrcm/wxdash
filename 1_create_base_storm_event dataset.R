@@ -44,43 +44,40 @@ county_storm_data_counts <- storm_data %>%
   count(FIPS, EVENT_TYPE_REC, name = "n_days") %>%
   mutate(EVENT_DAYS = n_days / n_years) %>%
   select(FIPS, EVENT_TYPE_REC, EVENT_DAYS) %>%
-  pivot_wider(names_from = EVENT_TYPE_REC, values_from = EVENT_DAYS) # start here #############
+  pivot_wider(names_from = EVENT_TYPE_REC, values_from = EVENT_DAYS)
 
 
 # FIX NECESSARY: Many events are reported by forecast zone (CZTYPE of "Z") rather than county (CZTYPE of "C"). For these events, the CNTY_FIPS is likely incorrect. 
 # Perhaps use CZ_NAME to get county info in the future? See https://cran.r-project.org/web/packages/noaastormevents/vignettes/details.html for example...
 
-drought_data <- list.files(downloads, pattern = "dm_export", full.names = TRUE) # https://droughtmonitor.unl.edu/DmData/DataDownload/ComprehensiveStatistics.aspx
-drought_data <- lapply(drought_data, fread, sep = ",")
-drought_data <- rbindlist(drought_data)
-drought_data$drought <- ifelse(drought_data$D1 > 0 | drought_data$D2 > 0 | drought_data$D3 > 0 | drought_data$D4 > 0, 1, 0)
-drought_data$YEAR <- as.numeric(substr(drought_data$MapDate, 1, 4))
-drought_data$FIPS <- str_pad(drought_data$FIPS, 5, side = "left", pad = 0)
+drought_data <- list.files(downloads, pattern = "dm_export", full.names = TRUE) %>%
+  map_dfr(~read_csv(.x, show_col_types = FALSE))
+
+drought_data <- drought_data %>%
+  mutate(drought = if_else(D1 > 0 | D2 > 0 | D3 > 0 | D4 > 0, 1, 0),
+         YEAR = as.numeric(str_sub(MapDate, 1, 4)),
+         FIPS = str_pad(FIPS, width = 5, side = "left", pad = "0"))
 
 drought_data <- left_join(drought_data, storm_data %>% select(CWA = WFO, FIPS) %>% distinct(FIPS, .keep_all = TRUE), by = "FIPS") # add WFO to drought data
 
 cwa_drought_data_counts <- drought_data %>% 
   filter(drought == 1) %>%
   distinct(MapDate, CWA, .keep_all = TRUE) %>% 
-  group_by(CWA) %>%
-  summarize(n = n()) %>%
-  mutate(EVENT_DAYS = n / length(min(drought_data$YEAR):max(drought_data$YEAR))) %>% 
-  select(CWA, EVENT_DAYS) %>% 
-  rename("DROUGHT" = "EVENT_DAYS")
+  count(CWA, name = "n_days") %>%
+  mutate(DROUGHT = n_days / n_years) %>% 
+  select(CWA, DROUGHT)
 
 county_drought_data_counts <- drought_data %>% 
-  filter(drought == 1) %>% 
-  group_by(FIPS) %>%
-  summarize(n = n()) %>%
-  mutate(EVENT_DAYS = n / length(min(drought_data$YEAR):max(drought_data$YEAR))) %>% 
-  select(FIPS, EVENT_DAYS) %>% 
-  rename("DROUGHT" = "EVENT_DAYS")
+  filter(drought == 1) %>%
+  count(FIPS, name = "n_days") %>%
+  mutate(DROUGHT = n_days / n_years) %>%
+  select(FIPS, DROUGHT)
 
 cwa_data <- left_join(cwa_storm_data_counts, cwa_drought_data_counts, by = "CWA")
 county_data <- left_join(county_storm_data_counts, county_drought_data_counts, by = "FIPS")
 
 nrow(cwa_data) # 125 CWAs
-nrow(county_data) # 5725 FIPS codes (many are incorrect, see fix note above)
+nrow(county_data) # 5883 FIPS codes (many are incorrect, see fix note above)
 
 # Join With County Shapefile (c_03mr20) -------------------------
 cwa_cnty_shp <- read_sf(paste0(downloads, "c_03mr20"), "c_03mr20") %>% as_tibble() %>% select(CWA, FIPS)

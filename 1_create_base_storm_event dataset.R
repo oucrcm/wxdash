@@ -5,64 +5,47 @@ library(sf)
 downloads <- "/Users/josephripberger/Dropbox (Univ. of Oklahoma)/Severe Weather and Society Dashboard/local files/downloads/" # define locally!!!
 outputs <- "/Users/josephripberger/Dropbox (Univ. of Oklahoma)/Severe Weather and Society Dashboard/local files/outputs/" # define locally!!!
 
-storm_data <- list.files(downloads, pattern = "StormEvents_details", full.names = TRUE) # https://www1.ncdc.noaa.gov/pub/data/swdi/stormevents/csvfiles/
-storm_data <- lapply(storm_data, fread, sep = ",")
-storm_data <- rbindlist(storm_data)
-storm_data$BEGIN_DATE <- substr(storm_data$BEGIN_DATE_TIME, 1, 9)
+storm_data <- list.files(path = downloads, pattern = "StormEvents_details", full.names = TRUE) %>%
+  map_dfr(~read_csv(.x, show_col_types = FALSE, 
+                    col_types = cols(TOR_OTHER_CZ_FIPS = col_character()))) %>% # fixes inconsistent data types in this column
+  mutate(BEGIN_DATE = str_sub(BEGIN_DATE_TIME, 1, 9))
 
-storm_data$EVENT_TYPE_REC <- NA
-storm_data$EVENT_TYPE_REC <- ifelse(storm_data$EVENT_TYPE %in% storm_data$EVENT_TYPE[grep("Heat", storm_data$EVENT_TYPE, ignore.case = TRUE)], 
-                                    "HEAT", storm_data$EVENT_TYPE_REC)
-storm_data$EVENT_TYPE_REC <- ifelse(storm_data$EVENT_TYPE %in% storm_data$EVENT_TYPE[grep("Cold", storm_data$EVENT_TYPE, ignore.case = TRUE)], 
-                                    "COLD", storm_data$EVENT_TYPE_REC)
-storm_data$EVENT_TYPE_REC <- ifelse(storm_data$EVENT_TYPE %in% storm_data$EVENT_TYPE[grep("Snow", storm_data$EVENT_TYPE, ignore.case = TRUE)], 
-                                    "SNOW", storm_data$EVENT_TYPE_REC)
-storm_data$EVENT_TYPE_REC <- ifelse(storm_data$EVENT_TYPE %in% storm_data$EVENT_TYPE[grep("Blizzard", storm_data$EVENT_TYPE, ignore.case = TRUE)], 
-                                    "SNOW", storm_data$EVENT_TYPE_REC)
-storm_data$EVENT_TYPE_REC <- ifelse(storm_data$EVENT_TYPE %in% storm_data$EVENT_TYPE[grep("Winter", storm_data$EVENT_TYPE, ignore.case = TRUE)], 
-                                    "SNOW", storm_data$EVENT_TYPE_REC)
-storm_data$EVENT_TYPE_REC <- ifelse(storm_data$EVENT_TYPE %in% storm_data$EVENT_TYPE[grep("Ice", storm_data$EVENT_TYPE, ignore.case = TRUE)], 
-                                    "SNOW", storm_data$EVENT_TYPE_REC)
-storm_data$EVENT_TYPE_REC <- ifelse(storm_data$EVENT_TYPE %in% storm_data$EVENT_TYPE[grep("Tornado", storm_data$EVENT_TYPE, ignore.case = TRUE)], 
-                                    "TORN", storm_data$EVENT_TYPE_REC)
-storm_data$EVENT_TYPE_REC <- ifelse(storm_data$EVENT_TYPE %in% storm_data$EVENT_TYPE[grep("Flood", storm_data$EVENT_TYPE, ignore.case = TRUE)], 
-                                    "FLOOD", storm_data$EVENT_TYPE_REC)
-storm_data$EVENT_TYPE_REC <- ifelse(storm_data$EVENT_TYPE %in% storm_data$EVENT_TYPE[grep("Surge", storm_data$EVENT_TYPE, ignore.case = TRUE)], 
-                                    "FLOOD", storm_data$EVENT_TYPE_REC)
-storm_data$EVENT_TYPE_REC <- ifelse(storm_data$EVENT_TYPE %in% storm_data$EVENT_TYPE[grep("Hurricane", storm_data$EVENT_TYPE, ignore.case = TRUE)], 
-                                    "HURR", storm_data$EVENT_TYPE_REC)
-storm_data$EVENT_TYPE_REC <- ifelse(storm_data$EVENT_TYPE %in% storm_data$EVENT_TYPE[grep("Depression", storm_data$EVENT_TYPE, ignore.case = TRUE)], 
-                                    "HURR", storm_data$EVENT_TYPE_REC)
-storm_data$EVENT_TYPE_REC <- ifelse(storm_data$EVENT_TYPE %in% storm_data$EVENT_TYPE[grep("Tropical Storm", storm_data$EVENT_TYPE, ignore.case = TRUE)], 
-                                    "HURR", storm_data$EVENT_TYPE_REC)
-storm_data$EVENT_TYPE_REC <- ifelse(storm_data$EVENT_TYPE %in% storm_data$EVENT_TYPE[grep("Wildfire", storm_data$EVENT_TYPE, ignore.case = TRUE)], 
-                                    "FIRE", storm_data$EVENT_TYPE_REC)
+storm_data <- storm_data %>%
+  mutate(EVENT_TYPE_REC = case_when(
+    str_detect(EVENT_TYPE, regex("Heat", ignore_case = TRUE)) ~ "HEAT",
+    str_detect(EVENT_TYPE, regex("Cold", ignore_case = TRUE)) ~ "COLD",
+    str_detect(EVENT_TYPE, regex("Snow|Blizzard|Winter|Ice", ignore_case = TRUE)) ~ "SNOW",
+    str_detect(EVENT_TYPE, regex("Tornado", ignore_case = TRUE)) ~ "TORN",
+    str_detect(EVENT_TYPE, regex("Flood|Surge", ignore_case = TRUE)) ~ "FLOOD",
+    str_detect(EVENT_TYPE, regex("Hurricane|Depression|Tropical Storm", ignore_case = TRUE)) ~ "HURR",
+    str_detect(EVENT_TYPE, regex("Wildfire", ignore_case = TRUE)) ~ "FIRE",
+    TRUE ~ NA_character_))
 
-storm_data$ST_FIPS <- str_pad(storm_data$STATE_FIPS, 2, side = "left", pad = 0)
-storm_data$CNTY_FIPS <- str_pad(storm_data$CZ_FIPS, 3, side = "left", pad = 0)
-storm_data$FIPS <- paste0(storm_data$ST_FIPS, storm_data$CNTY_FIPS)
+storm_data <- storm_data %>%
+  mutate(ST_FIPS = str_pad(STATE_FIPS, width = 2, side = "left", pad = "0"),
+         CNTY_FIPS = str_pad(CZ_FIPS, width = 3, side = "left", pad = "0"),
+         FIPS = str_c(ST_FIPS, CNTY_FIPS))
 
-cwa_storm_data_counts <- storm_data %>% 
-  drop_na(EVENT_TYPE_REC) %>% 
-  group_by(CWA = WFO, EVENT_TYPE_REC, BEGIN_DATE) %>% 
-  summarize(n = n()) %>%
-  group_by(CWA, EVENT_TYPE_REC) %>% 
-  summarize(n = n()) %>%
-  mutate(EVENT_DAYS = n / length(min(storm_data$YEAR):max(storm_data$YEAR))) %>% 
-  select(CWA, EVENT_TYPE_REC, EVENT_DAYS) %>% 
-  spread(EVENT_TYPE_REC, EVENT_DAYS) %>% 
-  as.data.frame() 
+n_years <- storm_data %>%
+  summarize(n_years = n_distinct(YEAR)) %>%
+  pull(n_years) #25  years in dataset (2000-2024)
 
-county_storm_data_counts <- storm_data %>% 
-  drop_na(EVENT_TYPE_REC) %>% 
-  group_by(FIPS, EVENT_TYPE_REC, BEGIN_DATE) %>% 
-  summarize(n = n()) %>%
-  group_by(FIPS, EVENT_TYPE_REC) %>% 
-  summarize(n = n()) %>%
-  mutate(EVENT_DAYS = n / length(min(storm_data$YEAR):max(storm_data$YEAR))) %>% 
-  select(FIPS, EVENT_TYPE_REC, EVENT_DAYS) %>% 
-  spread(EVENT_TYPE_REC, EVENT_DAYS) %>% 
-  as.data.frame()
+cwa_storm_data_counts <- storm_data %>%
+  filter(!is.na(EVENT_TYPE_REC)) %>%
+  distinct(WFO, EVENT_TYPE_REC, BEGIN_DATE) %>%
+  count(WFO, EVENT_TYPE_REC, name = "n_days") %>%
+  mutate(EVENT_DAYS = n_days / n_years) %>%
+  select(CWA = WFO, EVENT_TYPE_REC, EVENT_DAYS) %>%
+  pivot_wider(names_from = EVENT_TYPE_REC, values_from = EVENT_DAYS)
+
+county_storm_data_counts <- storm_data %>%
+  filter(!is.na(EVENT_TYPE_REC)) %>%
+  distinct(FIPS, EVENT_TYPE_REC, BEGIN_DATE) %>%
+  count(FIPS, EVENT_TYPE_REC, name = "n_days") %>%
+  mutate(EVENT_DAYS = n_days / n_years) %>%
+  select(FIPS, EVENT_TYPE_REC, EVENT_DAYS) %>%
+  pivot_wider(names_from = EVENT_TYPE_REC, values_from = EVENT_DAYS) # start here #############
+
 
 # FIX NECESSARY: Many events are reported by forecast zone (CZTYPE of "Z") rather than county (CZTYPE of "C"). For these events, the CNTY_FIPS is likely incorrect. 
 # Perhaps use CZ_NAME to get county info in the future? See https://cran.r-project.org/web/packages/noaastormevents/vignettes/details.html for example...

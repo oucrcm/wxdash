@@ -22,9 +22,13 @@ storm_data <- storm_data %>%
     TRUE ~ NA_character_))
 
 storm_data <- storm_data %>%
-  mutate(ST_FIPS = str_pad(STATE_FIPS, width = 2, side = "left", pad = "0"),
-         CNTY_FIPS = str_pad(CZ_FIPS, width = 3, side = "left", pad = "0"),
-         FIPS = str_c(ST_FIPS, CNTY_FIPS))
+  mutate(
+    ST_FIPS = str_pad(STATE_FIPS, width = 2, side = "left", pad = "0"),
+    CNTY_FIPS = if_else(CZ_TYPE == "C", str_pad(CZ_FIPS, width = 3, side = "left", pad = "0"), NA),
+    FIPS = if_else(CZ_TYPE == "C", str_c(ST_FIPS, CNTY_FIPS), NA),
+    ZONE_NUM = if_else(CZ_TYPE == "Z", str_pad(CZ_FIPS, width = 3, side = "left", pad = "0"), NA),
+    STATE_ABB = state.abb[match(str_to_title(STATE), state.name)],
+    ZONE_ID = if_else(CZ_TYPE == "Z", str_c(STATE_ABB, "Z", ZONE_NUM), NA))
 
 n_years <- storm_data %>%
   summarize(n_years = n_distinct(YEAR)) %>%
@@ -38,6 +42,15 @@ cwa_storm_data_counts <- storm_data %>%
   select(CWA = WFO, EVENT_TYPE_REC, EVENT_DAYS) %>%
   pivot_wider(names_from = EVENT_TYPE_REC, values_from = EVENT_DAYS)
 
+cwa_cnty_shp <- read_sf(paste0(downloads, "c_18mr25"), "c_18mr25")
+cwa_zone_shp <- read_sf(paste0(downloads, "z_18mr25"), "z_18mr25")
+cwa_zone_shp <- st_transform(cwa_zone_shp, crs = st_crs(cwa_cnty_shp))
+zone_to_county_join <- st_join(cwa_zone_shp, cwa_cnty_shp %>% select(FIPS), join = st_intersects, left = TRUE)
+zone_to_county_table <- zone_to_county_join %>% 
+  st_drop_geometry() %>% 
+  select(STATE, CWA, ZONE, FIPS) %>% 
+  mutate(ZONE_ID = str_c(STATE, "Z", ZONE)) # maybe use this file: https://www.weather.gov/source/gis/Shapefiles/County/bp18mr25.dbx
+
 county_storm_data_counts <- storm_data %>%
   filter(!is.na(EVENT_TYPE_REC)) %>%
   distinct(FIPS, EVENT_TYPE_REC, BEGIN_DATE) %>%
@@ -46,9 +59,8 @@ county_storm_data_counts <- storm_data %>%
   select(FIPS, EVENT_TYPE_REC, EVENT_DAYS) %>%
   pivot_wider(names_from = EVENT_TYPE_REC, values_from = EVENT_DAYS)
 
-
-# FIX NECESSARY: Many events are reported by forecast zone (CZTYPE of "Z") rather than county (CZTYPE of "C"). For these events, the CNTY_FIPS is likely incorrect. 
-# Perhaps use CZ_NAME to get county info in the future? See https://cran.r-project.org/web/packages/noaastormevents/vignettes/details.html for example...
+# FIX NECESSARY: Many events are reported by forecast zone (CZ_TYPE of "Z") rather than county (CZ_TYPE of "C")
+# For these events, the CNTY_FIPS is likely incorrect; need to overlay forecast zone shapefile with county shapefile to create a crosswalk
 
 drought_data <- list.files(downloads, pattern = "dm_export", full.names = TRUE) %>%
   map_dfr(~read_csv(.x, show_col_types = FALSE))

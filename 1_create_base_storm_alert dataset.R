@@ -5,97 +5,22 @@ library(sf)
 downloads <- "/Users/josephripberger/Dropbox (Univ. of Oklahoma)/Severe Weather and Society Dashboard/local files/downloads/" # define locally!!!
 outputs <- "/Users/josephripberger/Dropbox (Univ. of Oklahoma)/Severe Weather and Society Dashboard/local files/outputs/" # define locally!!!
 
-alerts_data <- 
+cwa_alerts_data <- read_csv(paste0(downloads, "wwa_cwa_counts.csv"))
+cnty_alerts_data <- read_csv(paste0(downloads, "wwa_county_counts.csv"))
 
-
-
-
-
-storm_data <- list.files(path = downloads, pattern = "StormEvents_details", full.names = TRUE) %>%
-  map_dfr(~read_csv(.x, show_col_types = FALSE, 
-                    col_types = cols(TOR_OTHER_CZ_FIPS = col_character()))) %>% # fixes inconsistent data types in this column
-  mutate(BEGIN_DATE = str_sub(BEGIN_DATE_TIME, 1, 9))
-
-storm_data <- storm_data %>%
-  mutate(EVENT_TYPE_REC = case_when(
-    str_detect(EVENT_TYPE, regex("Heat", ignore_case = TRUE)) ~ "HEAT",
-    str_detect(EVENT_TYPE, regex("Cold", ignore_case = TRUE)) ~ "COLD",
-    str_detect(EVENT_TYPE, regex("Snow|Blizzard|Winter|Ice", ignore_case = TRUE)) ~ "SNOW",
-    str_detect(EVENT_TYPE, regex("Tornado", ignore_case = TRUE)) ~ "TORN",
-    str_detect(EVENT_TYPE, regex("Flood|Surge", ignore_case = TRUE)) ~ "FLOOD",
-    str_detect(EVENT_TYPE, regex("Hurricane|Depression|Tropical Storm", ignore_case = TRUE)) ~ "HURR",
-    str_detect(EVENT_TYPE, regex("Wildfire", ignore_case = TRUE)) ~ "FIRE",
-    TRUE ~ NA_character_))
-
-storm_data <- storm_data %>%
-  mutate(
-    ST_FIPS = str_pad(STATE_FIPS, width = 2, side = "left", pad = "0"),
-    CNTY_FIPS = if_else(CZ_TYPE == "C", str_pad(CZ_FIPS, width = 3, side = "left", pad = "0"), NA),
-    FIPS = if_else(CZ_TYPE == "C", str_c(ST_FIPS, CNTY_FIPS), NA),
-    ZONE_NUM = if_else(CZ_TYPE == "Z", str_pad(CZ_FIPS, width = 3, side = "left", pad = "0"), NA),
-    STATE_ABB = state.abb[match(str_to_title(STATE), state.name)],
-    ZONE_ID = if_else(CZ_TYPE == "Z", str_c(STATE_ABB, "Z", ZONE_NUM), NA))
-
-n_years <- storm_data %>%
-  summarize(n_years = n_distinct(YEAR)) %>%
-  pull(n_years) #25  years in dataset (2000-2024)
-
-cwa_storm_data_counts <- storm_data %>%
-  filter(!is.na(EVENT_TYPE_REC)) %>%
-  distinct(WFO, EVENT_TYPE_REC, BEGIN_DATE) %>%
-  count(WFO, EVENT_TYPE_REC, name = "n_days") %>%
-  mutate(EVENT_DAYS = n_days / n_years) %>%
-  select(CWA = WFO, EVENT_TYPE_REC, EVENT_DAYS) %>%
-  pivot_wider(names_from = EVENT_TYPE_REC, values_from = EVENT_DAYS)
-
-cwa_cnty_shp <- read_sf(paste0(downloads, "c_18mr25"), "c_18mr25")
-cwa_zone_shp <- read_sf(paste0(downloads, "z_18mr25"), "z_18mr25")
-cwa_zone_shp <- st_transform(cwa_zone_shp, crs = st_crs(cwa_cnty_shp))
-zone_to_county_join <- st_join(cwa_zone_shp, cwa_cnty_shp %>% select(FIPS), join = st_intersects, left = TRUE)
-zone_to_county_table <- zone_to_county_join %>% 
-  st_drop_geometry() %>% 
-  select(STATE, CWA, ZONE, FIPS) %>% 
-  mutate(ZONE_ID = str_c(STATE, "Z", ZONE)) # maybe use this file: https://www.weather.gov/source/gis/Shapefiles/County/bp18mr25.dbx
-
-county_storm_data_counts <- storm_data %>%
-  filter(!is.na(EVENT_TYPE_REC)) %>%
-  distinct(FIPS, EVENT_TYPE_REC, BEGIN_DATE) %>%
-  count(FIPS, EVENT_TYPE_REC, name = "n_days") %>%
-  mutate(EVENT_DAYS = n_days / n_years) %>%
-  select(FIPS, EVENT_TYPE_REC, EVENT_DAYS) %>%
-  pivot_wider(names_from = EVENT_TYPE_REC, values_from = EVENT_DAYS)
-
-# FIX NECESSARY: Many events are reported by forecast zone (CZ_TYPE of "Z") rather than county (CZ_TYPE of "C")
-# For these events, the CNTY_FIPS is likely incorrect; need to overlay forecast zone shapefile with county shapefile to create a crosswalk
-
-drought_data <- list.files(downloads, pattern = "dm_export", full.names = TRUE) %>%
-  map_dfr(~read_csv(.x, show_col_types = FALSE))
-
-drought_data <- drought_data %>%
-  mutate(drought = if_else(D1 > 0 | D2 > 0 | D3 > 0 | D4 > 0, 1, 0),
-         YEAR = as.numeric(str_sub(MapDate, 1, 4)),
-         FIPS = str_pad(FIPS, width = 5, side = "left", pad = "0"))
-
-drought_data <- left_join(drought_data, storm_data %>% select(CWA = WFO, FIPS) %>% distinct(FIPS, .keep_all = TRUE), by = "FIPS") # add WFO to drought data
-
-cwa_drought_data_counts <- drought_data %>% 
-  filter(drought == 1) %>%
-  distinct(MapDate, CWA, .keep_all = TRUE) %>% 
-  count(CWA, name = "n_days") %>%
-  mutate(DROUGHT = n_days / n_years) %>% 
-  select(CWA, DROUGHT)
-
-county_drought_data_counts <- drought_data %>% 
-  filter(drought == 1) %>%
-  count(FIPS, name = "n_days") %>%
-  mutate(DROUGHT = n_days / n_years) %>%
-  select(FIPS, DROUGHT)
-
-cwa_data <- left_join(cwa_storm_data_counts, cwa_drought_data_counts, by = "CWA")
-county_data <- left_join(county_storm_data_counts, county_drought_data_counts, by = "FIPS")
-
-nrow(cwa_data) # 125 CWAs
-nrow(county_data) # 5883 FIPS codes (many are incorrect, see fix note above)
+cwa_alerts_data |> 
+  pivot_longer(cols = TS:AQ, names_to = "ALERT_TYPE", values_to = "count") |> 
+  mutate(hazard_group = case_when(
+    ALERT_TYPE %in% c("EH", "HT") ~ "HEAT",
+    ALERT_TYPE %in% c("WC", "WI", "WS", "ZF", "ZR", "HZ", "BZ", "IS", "LE", "SW") ~ "SNOW",
+    ALERT_TYPE %in% c("FZ", "FR") ~ "COLD",
+    ALERT_TYPE %in% c("TO") ~ "TORN",
+    ALERT_TYPE %in% c("FA", "FF", "FL", "CF", "SU") ~ "FLOOD",
+    ALERT_TYPE %in% c("HU", "LO", "TR", "MH", "TY", "TD", "TS") ~ "HURR",
+    ALERT_TYPE %in% c("FW", "SM", "FR", "RW") ~ "FIRE",
+    TRUE ~ "OTHER")) |> 
+  group_by(WFO, hazard_group, name = "n_days") |> 
+  count()
 
 # Join With County Shapefile (c_03mr20) -------------------------
 cwa_cnty_shp <- read_sf(paste0(downloads, "c_03mr20"), "c_03mr20") %>% as_tibble() %>% select(CWA, FIPS)

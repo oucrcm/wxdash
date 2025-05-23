@@ -5,6 +5,12 @@ library(sf)
 downloads <- "/Users/josephripberger/Dropbox (Univ. of Oklahoma)/Severe Weather and Society Dashboard/local files/downloads/" # define locally!!!
 outputs <- "/Users/josephripberger/Dropbox (Univ. of Oklahoma)/Severe Weather and Society Dashboard/local files/outputs/" # define locally!!!
 
+alerts_data <- 
+
+
+
+
+
 storm_data <- list.files(path = downloads, pattern = "StormEvents_details", full.names = TRUE) %>%
   map_dfr(~read_csv(.x, show_col_types = FALSE, 
                     col_types = cols(TOR_OTHER_CZ_FIPS = col_character()))) %>% # fixes inconsistent data types in this column

@@ -99,7 +99,7 @@ survey_data %>% count(survey_hazard, survey_year)
 
 # Identify respondent FIPS, CWA, and Region ------------------
 zip_to_county <- read_excel(paste0(downloads, "ZIP_COUNTY_032025.xlsx"), 
-                            col_types = c("text", "text", "numeric", "numeric", "numeric", "numeric")) # https://www.huduser.gov/portal/datasets/usps_crosswalk.html
+                            col_types = c("text", "text", "text", "text", "numeric", "numeric", "numeric", "numeric")) # https://www.huduser.gov/portal/datasets/usps_crosswalk.html
 zip_to_county <- zip_to_county %>% 
   select(ZIP, FIPS = COUNTY, RES_RATIO) %>% 
   arrange(ZIP, -RES_RATIO) %>% 
@@ -107,19 +107,23 @@ zip_to_county <- zip_to_county %>%
 
 survey_data$zip <- str_pad(survey_data$zip, 5, side = "left", pad = 0)
 survey_data <- left_join(survey_data, zip_to_county, by = c("zip" = "ZIP")) 
-survey_data <- drop_na(survey_data, FIPS) # drops 82 respondents (invalid zipcodes)
+survey_data <- drop_na(survey_data, FIPS) # drops 121 respondents (invalid zipcodes)
 
-cwa_cnty_shp <- read_sf(paste0(downloads, "c_03mr20"), "c_03mr20") %>% as_tibble() %>% select(CWA, FIPS)
-cwa_cnty_shp$CWA <- substr(cwa_cnty_shp$CWA, start = 1, stop = 3) # Only keep first CWA in counties that span multiple CWAs
-cwa_cnty_shp$CWA <- ifelse(cwa_cnty_shp$FIPS == "12087", "KEY", cwa_cnty_shp$CWA) # Fix KEY (assign FIPS 12087 to KEY alone, not KEY and MFL)
-cwa_cnty_shp <- cwa_cnty_shp %>% distinct(FIPS, .keep_all = TRUE) # Remove duplicate FIPS codes (counties that span multiple CWAs)
-cwa_cnty_shp <- cwa_cnty_shp %>% filter(!CWA %in% c("PPG", "SJU", "GUM", "HFO", "AFC", "AFG", "AJK")) # No census data
-survey_data <- left_join(survey_data, cwa_cnty_shp %>% select(FIPS, CWA), by = "FIPS")
-survey_data <- drop_na(survey_data, CWA) # drops 2 respondents (FIPS codes in PR)
+county_to_cwa_data <- read_sf(paste0(outputs, "county_to_cwa_data.csv"))
+count(survey_data$FIPS %in% county_to_cwa_data$GEOID)
 
-cwa_shp <- read_sf(paste0(downloads, "w_03mr20"), "w_03mr20") %>% as_tibble() %>% select(CWA, Region)
-survey_data <- left_join(survey_data, cwa_shp, by = "CWA")
-survey_data %>% count(CWA, sort = TRUE)
+
+# cwa_cnty_shp <- read_sf(paste0(downloads, "c_03mr20"), "c_03mr20") %>% as_tibble() %>% select(CWA, FIPS)
+# cwa_cnty_shp$CWA <- substr(cwa_cnty_shp$CWA, start = 1, stop = 3) # Only keep first CWA in counties that span multiple CWAs
+# cwa_cnty_shp$CWA <- ifelse(cwa_cnty_shp$FIPS == "12087", "KEY", cwa_cnty_shp$CWA) # Fix KEY (assign FIPS 12087 to KEY alone, not KEY and MFL)
+# cwa_cnty_shp <- cwa_cnty_shp %>% distinct(FIPS, .keep_all = TRUE) # Remove duplicate FIPS codes (counties that span multiple CWAs)
+# cwa_cnty_shp <- cwa_cnty_shp %>% filter(!CWA %in% c("PPG", "SJU", "GUM", "HFO", "AFC", "AFG", "AJK")) # No census data
+# survey_data <- left_join(survey_data, cwa_cnty_shp %>% select(FIPS, CWA), by = "FIPS")
+# survey_data <- drop_na(survey_data, CWA) # drops 2 respondents (FIPS codes in PR)
+
+# cwa_shp <- read_sf(paste0(downloads, "w_03mr20"), "w_03mr20") %>% as_tibble() %>% select(CWA, Region)
+# survey_data <- left_join(survey_data, cwa_shp, by = "CWA")
+# survey_data %>% count(CWA, sort = TRUE)
 
 # Recode/Rename Variables -----------------------------
 survey_data$MALE <- factor(survey_data$gend)

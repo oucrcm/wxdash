@@ -98,7 +98,7 @@ survey_data <- rbindlist(list(WX17, WX18, WX19, WX20, WX21, WX22, WX23, WX24, TC
 survey_data %>% count(survey_hazard, survey_year)
 
 # Identify respondent FIPS, CWA, and Region ------------------
-zip_to_county <- read_excel(paste0(downloads, "ZIP_COUNTY_032020.xlsx"), 
+zip_to_county <- read_excel(paste0(downloads, "ZIP_COUNTY_032025.xlsx"), 
                             col_types = c("text", "text", "numeric", "numeric", "numeric", "numeric")) # https://www.huduser.gov/portal/datasets/usps_crosswalk.html
 zip_to_county <- zip_to_county %>% 
   select(ZIP, FIPS = COUNTY, RES_RATIO) %>% 

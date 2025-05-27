@@ -3,10 +3,13 @@ library(sf)
 library(data.table)
 library(lubridate)
 
-# wwa shapefiles -----------------
-wwa_paths <- list.files("~/Univ. of Oklahoma Dropbox/Joe Ripberger/nws_product_climatology/wwa_data/", full.names = TRUE, pattern = "_all")
+downloads <- "/Users/josephripberger/Dropbox (Univ. of Oklahoma)/Severe Weather and Society Dashboard/local files/downloads/" # define locally!!!
+outputs <- "/Users/josephripberger/Dropbox (Univ. of Oklahoma)/Severe Weather and Society Dashboard/local files/outputs/" # define locally!!!
 
-# function to process shapefiles -----------------
+# Import Shapefiles -----------------------------
+wwa_paths <- list.files(downloads, full.names = TRUE, pattern = "_all") # source: https://mesonet.agron.iastate.edu/request/gis/watchwarn.phtml 
+
+# Function to Process Shapefiles -----------------
 process_wwa_summary <- function(shp_path) {
   year <- str_extract(basename(shp_path), "\\d{4}")
   cat("Processing file for year:", year, "\n")
@@ -18,10 +21,10 @@ process_wwa_summary <- function(shp_path) {
     mutate(
       index = row_number(),
       issue_date = as_date(ymd_hm(ISSUED)),
-      year = year,
+      year = year(issue_date),
       PHENOM = as.character(PHENOM))  |> 
-    distinct(WFO, PHENOM, issue_date) |> 
-    count(WFO, PHENOM, name = "day_count")
+    distinct(WFO, PHENOM, year, issue_date) |> 
+    count(WFO, PHENOM, year, name = "day_count")
   
   # Cleanup large objects
   rm(wwa_sf)
@@ -57,4 +60,4 @@ result_summary <- combined_summary %>%
   mutate(across(-WFO, ~replace_na(.x, 0)))
 
 # Save results
-write_csv(result_summary, "~/Univ. of Oklahoma Dropbox/Joe Ripberger/nws_product_climatology/wwa_data/wwa_shiny_app/data/wwa_cwa_counts.csv")
+write_csv(result_summary, paste0(outputs, "base_cwa_alert_data.csv"))

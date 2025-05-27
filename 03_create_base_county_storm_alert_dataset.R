@@ -9,6 +9,8 @@ outputs <- "/Users/josephripberger/Dropbox (Univ. of Oklahoma)/Severe Weather an
 
 # Import Shapefiles -----------------------------
 wwa_paths <- list.files(downloads, full.names = TRUE, pattern = "_all")[1:2] # source: https://mesonet.agron.iastate.edu/request/gis/watchwarn.phtml 
+cnty_shp <- st_read(paste0(downloads, "cb_2023_us_county_20m")) |>
+  st_transform(crs = 5070)
 
 # Function to Process Shapefiles -----------------
 process_wwa_year <- function(shp_path) {

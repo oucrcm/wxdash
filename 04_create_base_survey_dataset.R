@@ -110,20 +110,7 @@ survey_data <- left_join(survey_data, zip_to_county, by = c("zip" = "ZIP"))
 survey_data <- drop_na(survey_data, FIPS) # drops 121 respondents (invalid zipcodes)
 
 county_to_cwa_data <- read_sf(paste0(outputs, "county_to_cwa_data.csv"))
-count(survey_data$FIPS %in% county_to_cwa_data$GEOID)
-
-
-# cwa_cnty_shp <- read_sf(paste0(downloads, "c_03mr20"), "c_03mr20") %>% as_tibble() %>% select(CWA, FIPS)
-# cwa_cnty_shp$CWA <- substr(cwa_cnty_shp$CWA, start = 1, stop = 3) # Only keep first CWA in counties that span multiple CWAs
-# cwa_cnty_shp$CWA <- ifelse(cwa_cnty_shp$FIPS == "12087", "KEY", cwa_cnty_shp$CWA) # Fix KEY (assign FIPS 12087 to KEY alone, not KEY and MFL)
-# cwa_cnty_shp <- cwa_cnty_shp %>% distinct(FIPS, .keep_all = TRUE) # Remove duplicate FIPS codes (counties that span multiple CWAs)
-# cwa_cnty_shp <- cwa_cnty_shp %>% filter(!CWA %in% c("PPG", "SJU", "GUM", "HFO", "AFC", "AFG", "AJK")) # No census data
-# survey_data <- left_join(survey_data, cwa_cnty_shp %>% select(FIPS, CWA), by = "FIPS")
-# survey_data <- drop_na(survey_data, CWA) # drops 2 respondents (FIPS codes in PR)
-
-# cwa_shp <- read_sf(paste0(downloads, "w_03mr20"), "w_03mr20") %>% as_tibble() %>% select(CWA, Region)
-# survey_data <- left_join(survey_data, cwa_shp, by = "CWA")
-# survey_data %>% count(CWA, sort = TRUE)
+survey_data <- left_join(survey_data, county_to_cwa_data %>% select(FIPS = GEOID, CWA), by = "FIPS")
 
 # Recode/Rename Variables -----------------------------
 survey_data$MALE <- factor(survey_data$gend)
@@ -131,21 +118,6 @@ survey_data$AGE <- survey_data$age
 survey_data$AGE_GROUP <- factor(car::recode(survey_data$age, "18:34 = 1; 35:59 = 2; 60:110 = 3"))
 survey_data$HISP <-factor(survey_data$hisp) # missing 18 HISP obs. in WX17
 survey_data$RACE_GROUP <- factor(car::recode(survey_data$race, "1 = 1; 2 = 2; else = 3"))
-
-# Add Variables -----------------------------
-# survey_data <- survey_data %>%
-#   mutate(cointoss_correct = ifelse(as.numeric(as.character(cointoss)) == 500, 1, 0),
-#          bigbucks_correct = ifelse(as.numeric(as.character(bigbucks)) == 10, 1, 0),
-#          acme_pub_correct = ifelse(as.numeric(as.character(acme_pub)) == 0.1, 1, 0),
-#          choir_correct = ifelse(as.numeric(as.character(choir)) == 25, 1, 0),
-#          fiveside_correct = ifelse(as.numeric(as.character(fiveside)) == 30, 2, 0),
-#          sixside_correct = ifelse(as.numeric(as.character(sixside)) == 20, 3, 0),
-#          mushroom_correct = ifelse(as.numeric(as.character(mushroom)) == 50, 2, 0),
-#          numeracy_scale = rowSums(across(cointoss_correct:mushroom_correct), na.rm = TRUE)) %>%
-#   mutate(Numeracy = case_when(
-#     numeracy_scale %in% 0:2 ~ "(1) Low",
-#     numeracy_scale %in% 3:4 ~ "(2) Moderate",
-#     numeracy_scale %in% 5:7 ~ "(3) High")) # TODO: fix this!!
 
 # Event Data -------------------------
 cwa_storm_data <- read_csv(paste0(outputs, "base_cwa_storm_data.csv"))

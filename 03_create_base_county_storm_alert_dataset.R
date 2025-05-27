@@ -1,29 +1,16 @@
-rm(list = ls())
-
 library(tidyverse)
 library(sf)
 library(data.table)
 library(lubridate)
-
 sf_use_s2(FALSE)
 
-# county shapefile -----------------
-cwa_cnty_shp <- st_read("~/Dropbox (Univ. of Oklahoma)/Severe Weather and Society Dashboard/local files/downloads/c_18mr25") |>
-  st_transform(crs = 5070)
-cnty_shp <- st_read("~/Univ. of Oklahoma Dropbox/Joe Ripberger/nws_product_climatology/wwa_data/wwa_shiny_app/data/cb_2023_us_county_500k") |>
-  st_transform(crs = 5070)
+downloads <- "/Users/josephripberger/Dropbox (Univ. of Oklahoma)/Severe Weather and Society Dashboard/local files/downloads/" # define locally!!!
+outputs <- "/Users/josephripberger/Dropbox (Univ. of Oklahoma)/Severe Weather and Society Dashboard/local files/outputs/" # define locally!!!
 
-cwa_cnty_shp |> filter(!FIPS %in% cnty_shp$GEOID) |> print(n = Inf) # includes Connecticut counties, Palau, Marshall Islands, Micronesia
-cnty_shp |> filter(!GEOID %in% cwa_cnty_shp$FIPS) |> print(n = Inf) # missing Connecticut planning regions, Kalawao County Hawaii
-cwa_cnty_shp %>%
-  group_by(FIPS) %>%
-  filter(n_distinct(CWA) > 1) %>%
-  ungroup() # TODO: need to reassign MFL to KEY so that all parts of Monroe County are in KEY
+# Import Shapefiles -----------------------------
+wwa_paths <- list.files(downloads, full.names = TRUE, pattern = "_all")[1:2] # source: https://mesonet.agron.iastate.edu/request/gis/watchwarn.phtml 
 
-# wwa shapefiles -----------------
-wwa_paths <- list.files("~/Univ. of Oklahoma Dropbox/Joe Ripberger/nws_product_climatology/wwa_data/", full.names = TRUE, pattern = "_all")
-
-# function to process shapefiles -----------------
+# Function to Process Shapefiles -----------------
 process_wwa_year <- function(shp_path) {
   year <- str_extract(basename(shp_path), "\\d{4}")
   cat("Processing file for year:", year, "\n")
@@ -45,7 +32,7 @@ process_wwa_year <- function(shp_path) {
     mutate(
       index = row_number(),
       issue_date = as_date(ymd_hm(ISSUED)),
-      year = year,
+      year = year(issue_date),
       PHENOM = as.character(PHENOM)) |>
     select(index, issue_date, PHENOM, year)
   
@@ -72,14 +59,14 @@ for (path in wwa_paths) {
 }
 
 # Combine all joined results into a single dataframe
-yearly_results <- bind_rows(all_joined)
+combined_summary <- bind_rows(all_joined)
 
 # Aggregate final results
 result_summary <- cnty_shp %>%
   st_drop_geometry() %>%
   select(GEOID, NAME, NAMELSAD, STUSPS, STATE_NAME) %>%
   left_join(
-    yearly_results %>%
+    combined_summary %>%
       count(GEOID, PHENOM, name = "day_count") %>%
       pivot_wider(
         names_from = PHENOM,
@@ -91,4 +78,4 @@ result_summary <- cnty_shp %>%
   mutate(across(-c(GEOID, NAME, NAMELSAD, STUSPS, STATE_NAME), ~replace_na(.x, 0)))
 
 # Save results
-write_csv(result_summary, "~/Univ. of Oklahoma Dropbox/Joe Ripberger/nws_product_climatology/wwa_data/wwa_shiny_app/data/wwa_county_counts.csv")
+write_csv(result_summary, paste0(outputs, "base_county_alert_data.csv"))

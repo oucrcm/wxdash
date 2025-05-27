@@ -113,15 +113,24 @@ county_to_cwa_data <- read_sf(paste0(outputs, "county_to_cwa_data.csv"))
 survey_data <- left_join(survey_data, county_to_cwa_data %>% select(FIPS = GEOID, CWA), by = "FIPS")
 
 # Recode/Rename Variables -----------------------------
-survey_data$MALE <- factor(survey_data$gend)
-survey_data$AGE <- survey_data$age
-survey_data$AGE_GROUP <- factor(car::recode(survey_data$age, "18:34 = 1; 35:59 = 2; 60:110 = 3"))
-survey_data$HISP <-factor(survey_data$hisp) # missing 18 HISP obs. in WX17
-survey_data$RACE_GROUP <- factor(car::recode(survey_data$race, "1 = 1; 2 = 2; else = 3"))
+survey_data <- survey_data %>%
+  mutate(
+    MALE = factor(gend),
+    AGE = age,
+    AGE_GROUP = factor(case_when(
+      age >= 18 & age <= 34 ~ 1,
+      age >= 35 & age <= 59 ~ 2,
+      age >= 60 & age <= 110 ~ 3,
+      TRUE ~ NA_real_)),
+    HISP = factor(hisp),
+    RACE_GROUP = factor(case_when(
+      race == 1 ~ 1,
+      race == 2 ~ 2,
+      TRUE ~ 3)))
 
-# Event Data -------------------------
-cwa_storm_data <- read_csv(paste0(outputs, "base_cwa_storm_data.csv"))
-county_storm_data <- read_csv(paste0(outputs, "base_county_storm_data.csv"))
+# Alert Data -------------------------
+cwa_storm_data <- read_csv(paste0(outputs, "base_cwa_alert_data.csv"))
+county_storm_data <- read_csv(paste0(outputs, "base_county_alert_data.csv"))
 
 cwa_storm_data <- cwa_storm_data %>% rename_at(vars(COLD:DROUGHT), ~paste0("CWA_", .))
 county_storm_data <- county_storm_data %>% rename_at(vars(COLD:DROUGHT), ~paste0("FIPS_", .))

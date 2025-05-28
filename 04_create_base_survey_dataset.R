@@ -1,8 +1,8 @@
 library(ltm)
-library(tidyverse)
 library(data.table)
 library(readxl)
 library(sf)
+library(tidyverse)
 
 downloads <- "/Users/josephripberger/Dropbox (Univ. of Oklahoma)/Severe Weather and Society Dashboard/local files/downloads/" # define locally!!!
 outputs <- "/Users/josephripberger/Dropbox (Univ. of Oklahoma)/Severe Weather and Society Dashboard/local files/outputs/" # define locally!!!
@@ -129,14 +129,14 @@ survey_data <- survey_data %>%
       TRUE ~ 3)))
 
 # Alert Data -------------------------
-cwa_storm_data <- read_csv(paste0(outputs, "base_cwa_alert_data.csv"))
-county_storm_data <- read_csv(paste0(outputs, "base_county_alert_data.csv"))
+cwa_alert_data <- read_csv(paste0(outputs, "base_cwa_alert_data.csv"))
+county_alert_data <- read_csv(paste0(outputs, "base_county_alert_data.csv"))
 
-cwa_storm_data <- cwa_storm_data %>% rename_at(vars(COLD:DROUGHT), ~paste0("CWA_", .))
-county_storm_data <- county_storm_data %>% rename_at(vars(COLD:DROUGHT), ~paste0("FIPS_", .))
+cwa_alert_data <- cwa_alert_data %>% rename_at(vars(COLD:TORN), ~paste0("CWA_", .))
+county_alert_data <- county_alert_data %>% rename_at(vars(COLD:TORN), ~paste0("FIPS_", .))
 
-survey_data <- left_join(survey_data, cwa_storm_data, by = "CWA")
-survey_data <- left_join(survey_data, county_storm_data, by = "FIPS")
+survey_data <- left_join(survey_data, cwa_alert_data, by = "CWA")
+survey_data <- left_join(survey_data, county_alert_data, by = "FIPS")
 
 # Risk Data (from FEMA) -------------------------
 cwa_risk_data <- read_csv(paste0(outputs, "base_cwa_risk_data.csv"))

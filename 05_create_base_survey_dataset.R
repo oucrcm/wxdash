@@ -132,11 +132,11 @@ survey_data <- survey_data %>%
 cwa_alert_data <- read_csv(paste0(outputs, "base_cwa_alert_data.csv"))
 county_alert_data <- read_csv(paste0(outputs, "base_county_alert_data.csv"))
 
-cwa_alert_data <- cwa_alert_data %>% rename_at(vars(COLD:TORN), ~paste0("CWA_", .))
+cwa_alert_data <- cwa_alert_data %>% rename_at(vars(FLOOD:HURR), ~paste0("CWA_", .))
 county_alert_data <- county_alert_data %>% rename_at(vars(COLD:TORN), ~paste0("FIPS_", .))
 
-survey_data <- left_join(survey_data, cwa_alert_data, by = "CWA")
-survey_data <- left_join(survey_data, county_alert_data, by = "FIPS")
+survey_data <- left_join(survey_data, cwa_alert_data, by = c("CWA" = "WFO"))
+survey_data <- left_join(survey_data, county_alert_data, by = c("FIPS" = "GEOID"))
 
 # Risk Data (from FEMA) -------------------------
 cwa_risk_data <- read_csv(paste0(outputs, "base_cwa_risk_data.csv"))

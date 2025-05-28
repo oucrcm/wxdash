@@ -22,9 +22,19 @@ process_wwa_summary <- function(shp_path) {
       index = row_number(),
       issue_date = as_date(ymd_hm(ISSUED)),
       year = year(issue_date),
-      PHENOM = as.character(PHENOM))  |> 
-    distinct(WFO, PHENOM, year, issue_date) |> 
-    count(WFO, PHENOM, year, name = "day_count")
+      PHENOM = as.character(PHENOM), 
+      CATEGORY = case_when(
+        PHENOM %in% c("EH", "HT", "XH") ~ "HEAT", # https://github.com/akrherz/pyIEM/blob/main/src/pyiem/nws/vtec.py
+        PHENOM %in% c("CW", "EC", "WC") ~ "COLD",
+        PHENOM %in% c("BS", "HS", "LB", "LE", "SB", "SN", "SQ", "WS", "WW") ~ "SNOW",
+        PHENOM %in% c("TO") ~ "TORN",
+        PHENOM %in% c("CF", "FA", "FF", "FL", "LS", "SS", "TS") ~ "FLOOD",
+        PHENOM %in% c("EW", "HF", "HU", "SS", "TR", "TY") ~ "HURR",
+        PHENOM %in% c("FW") ~ "FIRE",
+        TRUE ~ NA_character_
+        ))  |> 
+    distinct(WFO, CATEGORY, year, issue_date) |> 
+    count(WFO, CATEGORY, year, name = "day_count")
   
   # Cleanup large objects
   rm(wwa_sf)
@@ -50,10 +60,11 @@ combined_summary <- bind_rows(summary_list)
 
 # Aggregate final results
 result_summary <- combined_summary %>%
-  group_by(WFO, PHENOM) %>%
+  filter(!is.na(CATEGORY)) %>%
+  group_by(WFO, CATEGORY) %>%
   summarise(day_count = sum(day_count), .groups = "drop") %>%
   pivot_wider(
-    names_from = PHENOM,
+    names_from = CATEGORY,
     values_from = day_count,
     values_fill = 0
   ) %>%

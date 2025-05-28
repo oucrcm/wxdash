@@ -35,11 +35,21 @@ process_wwa_year <- function(shp_path) {
       index = row_number(),
       issue_date = as_date(ymd_hm(ISSUED)),
       year = year(issue_date),
-      PHENOM = as.character(PHENOM)) |>
-    select(index, issue_date, PHENOM, year)
+      PHENOM = as.character(PHENOM),
+      CATEGORY = case_when(
+        PHENOM %in% c("EH", "HT", "XH") ~ "HEAT", # https://github.com/akrherz/pyIEM/blob/main/src/pyiem/nws/vtec.py
+        PHENOM %in% c("CW", "EC", "WC") ~ "COLD",
+        PHENOM %in% c("BS", "HS", "LB", "LE", "SB", "SN", "SQ", "WS", "WW") ~ "SNOW",
+        PHENOM %in% c("TO") ~ "TORN",
+        PHENOM %in% c("CF", "FA", "FF", "FL", "LS", "SS", "TS") ~ "FLOOD",
+        PHENOM %in% c("EW", "HF", "HU", "SS", "TR", "TY") ~ "HURR",
+        PHENOM %in% c("FW") ~ "FIRE",
+        TRUE ~ NA_character_
+        )) |>
+    select(index, issue_date, CATEGORY, year)
   
   joined <- left_join(overlaps, wwa_data, by = c("wwa_index" = "index")) |>
-    distinct(GEOID, PHENOM, issue_date, year)
+    distinct(GEOID, CATEGORY, issue_date, year)
   
   # Cleanup large objects
   rm(wwa_sf, intersections, overlaps, wwa_data)
@@ -69,9 +79,10 @@ result_summary <- cnty_shp %>%
   select(GEOID, NAME, NAMELSAD, STUSPS, STATE_NAME) %>%
   left_join(
     combined_summary %>%
-      count(GEOID, PHENOM, name = "day_count") %>%
+      drop_na(CATEGORY) %>%
+      count(GEOID, CATEGORY, name = "day_count") %>%
       pivot_wider(
-        names_from = PHENOM,
+        names_from = CATEGORY,
         values_from = day_count,
         values_fill = 0
       ),
